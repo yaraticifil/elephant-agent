@@ -52,17 +52,59 @@ class ResearcherAgent(BaseAgent):
 
     async def _research(self, topic: str) -> str:
         """
-        Stage 2 stub: returns a placeholder findings document.
-        Stage 5: Uses web_search tool + headless browser + PDF parser.
+        Executes a web search on the given topic, fetches the top results,
+        extracts text, and synthesizes a basic report.
         """
-        await asyncio.sleep(1)
-        return (
-            f"# Research Findings: {topic}\n\n"
-            f"[Stage 2 Stub] Web research not yet connected. "
-            f"Will use SerpAPI/DuckDuckGo + browser automation in Stage 5.\n\n"
-            f"**Key topics to investigate:** {topic}\n"
-            f"**Uncertainty flags:** Research engine not connected.\n"
-        )
+        logger.info("researcher_searching_web", extra={"topic": topic})
+        
+        try:
+            from duckduckgo_search import DDGS
+            from bs4 import BeautifulSoup
+        except ImportError:
+            return f"# Research Findings: {topic}\n\n[Error] Missing duckduckgo-search or bs4.\n"
+        
+        # Run synchronous search in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
+        def do_search():
+            with DDGS() as ddgs:
+                return list(ddgs.text(topic, max_results=3))
+                
+        try:
+            results = await loop.run_in_executor(None, do_search)
+        except Exception as e:
+            logger.error(f"search_failed: {e}")
+            return f"# Research Findings: {topic}\n\n[Error] Search failed: {e}\n"
+            
+        research_fragments = []
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            for r in results:
+                url = r.get("href")
+                title = r.get("title")
+                snippet = r.get("body")
+                extracted_text = snippet
+                try:
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        soup = BeautifulSoup(resp.text, "lxml")
+                        paragraphs = soup.find_all('p')
+                        text = " ".join([p.get_text() for p in paragraphs[:8]])
+                        if len(text) > 200:
+                            extracted_text = text[:1500] + "..."
+                except Exception as e:
+                    logger.warning(f"url_fetch_failed: {url} - {e}")
+                
+                research_fragments.append(
+                    f"### {title}\n"
+                    f"**Source:** {url}\n"
+                    f"**Summary:** {extracted_text}\n"
+                )
+                
+        if not research_fragments:
+            return f"# Research Findings: {topic}\n\nNo results found on the web.\n"
+            
+        report = f"# Research Findings: {topic}\n\n"
+        report += "\n".join(research_fragments)
+        return report
 
     async def _store_findings(self, task_id: str, topic: str, findings: str) -> None:
         """Stage 3: Will write chunks to Qdrant + update Neo4j knowledge graph."""

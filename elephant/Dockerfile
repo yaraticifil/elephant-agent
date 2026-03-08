@@ -18,7 +18,10 @@ RUN pip install --no-cache-dir \
     pydantic-settings==2.2.1 \
     httpx==0.27.0 \
     qdrant-client==1.9.1 \
-    neo4j==5.19.0
+    neo4j==5.19.0 \
+    duckduckgo-search==5.3.1 \
+    beautifulsoup4==4.12.3 \
+    lxml==5.2.2
 
 COPY shared/ ./shared/
 COPY services/ ./services/
