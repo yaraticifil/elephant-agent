@@ -69,8 +69,8 @@ class WatchdogAgent(BaseAgent):
 
 
 async def main():
-    from shared.logging.config import setup_logging
-    setup_logging()
+    from shared.logging.config import configure_logging
+    configure_logging("agent_watchdog")
     agent = WatchdogAgent()
     await agent.start()
     try:

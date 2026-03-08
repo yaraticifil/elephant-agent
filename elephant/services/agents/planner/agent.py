@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 TASK_TYPE_AGENT_MAP: dict[TaskType, str] = {
     TaskType.research: "researcher",
-    TaskType.creation: "creator",
+    TaskType.content_creation: "creator",
     TaskType.strategy: "creator",
-    TaskType.image: "visual",
+    TaskType.image_generation: "visual",
     TaskType.report: "reporter",
     TaskType.publish: "executor",
     TaskType.reminder: "memory_agent",
@@ -44,7 +44,7 @@ WORKFLOW_TEMPLATES: dict[str, list[dict]] = {
     ],
     "content_creation": [
         {"step": 1, "agent": "researcher", "type": TaskType.research,   "label": "Background research"},
-        {"step": 2, "agent": "creator",    "type": TaskType.creation,   "label": "Draft content in Salim's voice"},
+        {"step": 2, "agent": "creator",    "type": TaskType.content_creation,   "label": "Draft content in Salim's voice"},
         {"step": 3, "agent": "critic",     "type": TaskType.system,     "label": "Quality gate: tone & brand check"},
         {"step": 4, "agent": "auditor",    "type": TaskType.system,     "label": "Compliance check + approval token"},
         {"step": 5, "agent": "executor",   "type": TaskType.publish,    "label": "Publish via approved channel"},
@@ -56,7 +56,7 @@ WORKFLOW_TEMPLATES: dict[str, list[dict]] = {
         {"step": 4, "agent": "reporter",   "type": TaskType.report,     "label": "Final strategic brief"},
     ],
     "image_generation": [
-        {"step": 1, "agent": "visual",     "type": TaskType.image,      "label": "Generate visual assets"},
+        {"step": 1, "agent": "visual",     "type": TaskType.image_generation,      "label": "Generate visual assets"},
         {"step": 2, "agent": "critic",     "type": TaskType.system,     "label": "Brand consistency review"},
         {"step": 3, "agent": "auditor",    "type": TaskType.system,     "label": "Content compliance check"},
     ],
@@ -65,7 +65,7 @@ WORKFLOW_TEMPLATES: dict[str, list[dict]] = {
     ],
     "default": [
         {"step": 1, "agent": "researcher", "type": TaskType.research,   "label": "Research"},
-        {"step": 2, "agent": "creator",    "type": TaskType.creation,   "label": "Create output"},
+        {"step": 2, "agent": "creator",    "type": TaskType.content_creation,   "label": "Create output"},
         {"step": 3, "agent": "critic",     "type": TaskType.system,     "label": "Review"},
     ],
 }
@@ -76,11 +76,11 @@ def _classify_goal(title: str, task_type: TaskType) -> str:
     title_lower = title.lower()
     if task_type == TaskType.research:
         return "research"
-    if task_type in (TaskType.creation, TaskType.publish):
+    if task_type in (TaskType.content_creation, TaskType.publish):
         return "content_creation"
     if task_type == TaskType.strategy:
         return "strategy"
-    if task_type == TaskType.image:
+    if task_type == TaskType.image_generation:
         return "image_generation"
     if task_type == TaskType.report:
         return "report"
