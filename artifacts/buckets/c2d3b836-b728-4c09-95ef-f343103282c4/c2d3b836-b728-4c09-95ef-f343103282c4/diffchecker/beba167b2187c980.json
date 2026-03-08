@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\message.py",
+      "start_line": 1,
+      "end_line": 48,
+      "content_hash": "8c353ba33ffd27d6",
+      "timestamp": "2026-03-08T10:23:53.904319",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom datetime import datetime\nfrom enum import Enum\nfrom typing import Any\nfrom uuid import UUID, uuid4\nfrom pydantic import BaseModel, Field\n\n\nclass EventType(str, Enum):\n    task_created = \"task.created\"\n    task_assigned = \"task.assigned\"\n    task_status_changed = \"task.status_changed\"\n    task_completed = \"task.completed\"\n    task_failed = \"task.failed\"\n    task_cancelled = \"task.cancelled\"\n    task_escalated = \"task.escalated\"\n    agent_heartbeat = \"agent.heartbeat\"\n    agent_task_request = \"agent.task_request\"\n    agent_task_result = \"agent.task_result\"\n    agent_feedback = \"agent.feedback\"\n    system_alert = \"system.alert\"\n    system_cost_threshold = \"system.cost_threshold\"\n    system_agent_restart = \"system.agent_restart\"\n    system_mode_change = \"system.mode_change\"\n    approval_requested = \"approval.requested\"\n    approval_granted = \"approval.granted\"\n    approval_rejected = \"approval.rejected\"\n\n\nclass AlertSeverity(str, Enum):\n    info = \"info\"\n    warning = \"warning\"\n    critical = \"critical\"\n\n\nclass BusMessage(BaseModel):\n    message_id: UUID = Field(default_factory=uuid4)\n    timestamp: datetime = Field(default_factory=datetime.utcnow)\n    event_type: EventType\n    sender_agent: str\n    recipient_agent: str | None = None\n    task_id: UUID | None = None\n    payload: dict[str, Any] = Field(default_factory=dict)\n    priority: int = Field(default=3, ge=1, le=5)\n    requires_ack: bool = False\n    ttl_seconds: int = 300\n    correlation_id: UUID | None = None\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\message.py"
+}

@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\budgets.yaml",
+      "start_line": 1,
+      "end_line": 25,
+      "content_hash": "56a485deadc8ea71",
+      "timestamp": "2026-03-08T10:32:40.467850",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "budgets:\n  daily_limit_usd: 10.00\n  hourly_limit_usd: 3.00\n\n  alert_thresholds_percent:\n    - 50\n    - 80\n    - 100\n\n  per_agent_daily_limit_usd:\n    planner: 1.00\n    researcher: 3.00\n    creator: 2.00\n    visual: 2.00\n    critic: 1.00\n    memory_agent: 0.50\n    executor: 0.50\n    watchdog: 0.10\n    auditor: 0.50\n    interacter: 0.50\n    reporter: 0.50\n\n  per_task_limit_usd: 2.00\n  on_100_percent_reached: stop_cloud_calls\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\budgets.yaml"
+}

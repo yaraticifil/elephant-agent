@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\dashboard\\backend\\Dockerfile",
+      "start_line": 1,
+      "end_line": 13,
+      "content_hash": "08c4e440def085aa",
+      "timestamp": "2026-03-08T10:31:12.514486",
+      "session_id": "f1252617-7f08-458e-9255-26d565cd22b1",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "FROM python:3.11-slim\nWORKDIR /app\nRUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*\nRUN pip install --no-cache-dir \\\n    fastapi==0.111.0 uvicorn[standard]==0.29.0 \\\n    pydantic==2.7.1 pydantic-settings==2.2.1 httpx==0.27.0\nCOPY shared/ ./shared/\nCOPY config/ ./config/\nCOPY services/ ./services/\nENV PYTHONPATH=/app\nENV PYTHONUNBUFFERED=1\nCMD [\"uvicorn\", \"services.dashboard.backend.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8001\"]\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\dashboard\\backend\\Dockerfile"
+}

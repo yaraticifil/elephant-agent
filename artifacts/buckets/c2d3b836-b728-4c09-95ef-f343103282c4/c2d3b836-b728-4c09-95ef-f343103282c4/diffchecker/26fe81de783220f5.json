@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\scripts\\init_db.py",
+      "start_line": 1,
+      "end_line": 48,
+      "content_hash": "af0c62ca8d853541",
+      "timestamp": "2026-03-08T10:33:11.596894",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "\"\"\"\ninit_db.py - Run once to initialize the database.\nUsage: python scripts/init_db.py\n\"\"\"\nimport asyncio\nimport sys\nimport os\n\nsys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\n\nfrom sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker\nfrom services.memory.relational.models import Base, AgentRegistry\nfrom shared.config.base import get_settings\n\nsettings = get_settings()\n\nALL_AGENTS = [\n    \"planner\", \"researcher\", \"creator\", \"visual\", \"critic\",\n    \"memory_agent\", \"executor\", \"watchdog\", \"auditor\", \"interacter\", \"reporter\"\n]\n\n\nasync def init():\n    print(f\"Connecting to: {settings.POSTGRES_URL}\")\n    engine = create_async_engine(settings.POSTGRES_URL, echo=True)\n    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)\n\n    async with engine.begin() as conn:\n        await conn.run_sync(Base.metadata.create_all)\n    print(\"Tables created.\")\n\n    async with session_factory() as session:\n        for name in ALL_AGENTS:\n            existing = await session.get(AgentRegistry, name)\n            if not existing:\n                session.add(AgentRegistry(agent_name=name, status=\"offline\"))\n                print(f\"Registered agent: {name}\")\n            else:\n                print(f\"Agent already exists: {name}\")\n        await session.commit()\n\n    print(\"Database initialized successfully.\")\n    await engine.dispose()\n\n\nif __name__ == \"__main__\":\n    asyncio.run(init())\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\scripts\\init_db.py"
+}

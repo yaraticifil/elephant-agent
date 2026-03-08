@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\README.md",
+      "start_line": 1,
+      "end_line": 51,
+      "content_hash": "525027ace3f26856",
+      "timestamp": "2026-03-08T10:33:52.914401",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "# ELEPHANT \u2014 README\n\n## Kurulum\n\n### 1. env dosyas\u0131n\u0131 olu\u015ftur\n```\ncopy env.template .env\n```\n`.env` dosyas\u0131ndaki \u015fifreleri de\u011fi\u015ftir.\n\n### 2. Docker ile ba\u015flat\n```\ncd deploy/docker\ndocker-compose up -d\n```\n\n### 3. Sa\u011fl\u0131k kontrol\u00fc\n```\npython scripts/health_check.py\n```\n\n### 4. Veritaban\u0131n\u0131 ba\u015flat (ilk kurulumda)\n```\npython scripts/init_db.py\n```\n\n## Servisler\n\n| Servis | Port | A\u00e7\u0131klama |\n|---|---|---|\n| Orchestrator | 8000 | Ana API |\n| Dashboard Backend | 8001 | Dashboard proxy API |\n| Interacter | 8010 | G\u00f6rev olu\u015fturma giri\u015fi |\n| PostgreSQL | 5432 | Veritaban\u0131 |\n| Redis | 6379 | Message bus |\n| Qdrant | 6333 | Vector store |\n| Neo4j | 7474/7687 | Knowledge graph |\n\n## \u00d6rnek g\u00f6rev olu\u015fturma\n\n```bash\ncurl -X POST http://localhost:8010/input \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"title\": \"AI stratejisi ara\u015ft\u0131r\", \"task_type\": \"research\", \"mode\": \"work\"}'\n```\n\n```bash\ncurl http://localhost:8000/tasks\ncurl http://localhost:8000/agents\n```\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\README.md"
+}

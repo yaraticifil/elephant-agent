@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\orchestrator\\core\\task_router.py",
+      "start_line": 1,
+      "end_line": 18,
+      "content_hash": "97a81989e9c1d3f8",
+      "timestamp": "2026-03-08T10:26:50.893344",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from shared.schemas.task import TaskType\n\nTASK_TYPE_TO_AGENT: dict[str, str] = {\n    TaskType.research.value: \"researcher\",\n    TaskType.content_creation.value: \"creator\",\n    TaskType.image_generation.value: \"visual\",\n    TaskType.strategy.value: \"creator\",\n    TaskType.report.value: \"reporter\",\n    TaskType.publish.value: \"executor\",\n    TaskType.reminder.value: \"interacter\",\n    TaskType.personal.value: \"interacter\",\n    TaskType.system.value: \"watchdog\",\n}\n\n\ndef route_task(task_type: str) -> str:\n    return TASK_TYPE_TO_AGENT.get(task_type, \"planner\")\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\orchestrator\\core\\task_router.py"
+}

@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\agents\\planner\\agent.py",
+      "start_line": 1,
+      "end_line": 29,
+      "content_hash": "7560edd4ba79f2f5",
+      "timestamp": "2026-03-08T10:28:00.528072",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nimport asyncio\nimport logging\nfrom services.agents.base.agent import BaseAgent\nfrom shared.schemas.message import BusMessage\n\nlogger = logging.getLogger(__name__)\n\n\nclass PlannerAgent(BaseAgent):\n    def __init__(self):\n        super().__init__(\"planner\")\n\n    async def handle_message(self, msg: BusMessage) -> None:\n        logger.info(\"planner_received_message\", extra={\n            \"agent\": self.agent_name,\n            \"event_type\": msg.event_type,\n            \"task_id\": str(msg.task_id) if msg.task_id else None,\n        })\n        await asyncio.sleep(0.1)\n\n\nif __name__ == \"__main__\":\n    import sys\n    sys.path.insert(0, \"/app\")\n    from shared.logging.config import configure_logging\n    configure_logging(\"agent_planner\")\n    asyncio.run(PlannerAgent().start())\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\agents\\planner\\agent.py"
+}

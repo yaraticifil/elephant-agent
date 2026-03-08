@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\scripts\\health_check.py",
+      "start_line": 1,
+      "end_line": 45,
+      "content_hash": "9e9d972dc1c32f13",
+      "timestamp": "2026-03-08T10:33:21.197257",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "\"\"\"\nhealth_check.py - Verify all services are healthy.\nUsage: python scripts/health_check.py\nExit 0 = all healthy, Exit 1 = something is down.\n\"\"\"\nimport asyncio\nimport sys\nimport os\nimport httpx\n\nsys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\n\nCHECKS = [\n    (\"Orchestrator\", \"http://localhost:8000/health\"),\n    (\"Dashboard Backend\", \"http://localhost:8001/health\"),\n    (\"Interacter\", \"http://localhost:8010/health\"),\n]\n\n\nasync def check():\n    all_ok = True\n    async with httpx.AsyncClient(timeout=5) as client:\n        for name, url in CHECKS:\n            try:\n                resp = await client.get(url)\n                if resp.status_code == 200:\n                    print(f\"[OK]   {name}: {url}\")\n                else:\n                    print(f\"[FAIL] {name}: HTTP {resp.status_code}\")\n                    all_ok = False\n            except Exception as e:\n                print(f\"[DOWN] {name}: {e}\")\n                all_ok = False\n\n    print()\n    if all_ok:\n        print(\"All services healthy.\")\n    else:\n        print(\"Some services are DOWN.\")\n        sys.exit(1)\n\n\nif __name__ == \"__main__\":\n    asyncio.run(check())\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\scripts\\health_check.py"
+}

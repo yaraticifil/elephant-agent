@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\agent.py",
+      "start_line": 1,
+      "end_line": 51,
+      "content_hash": "14ebdc9f92b12a36",
+      "timestamp": "2026-03-08T10:23:45.103884",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom datetime import datetime\nfrom enum import Enum\nfrom uuid import UUID\nfrom pydantic import BaseModel, Field\n\n\nclass AgentName(str, Enum):\n    planner = \"planner\"\n    researcher = \"researcher\"\n    creator = \"creator\"\n    visual = \"visual\"\n    critic = \"critic\"\n    memory_agent = \"memory_agent\"\n    executor = \"executor\"\n    watchdog = \"watchdog\"\n    auditor = \"auditor\"\n    interacter = \"interacter\"\n    reporter = \"reporter\"\n\n\nclass AgentHealthStatus(str, Enum):\n    healthy = \"healthy\"\n    degraded = \"degraded\"\n    unresponsive = \"unresponsive\"\n    offline = \"offline\"\n\n\nclass AgentHeartbeat(BaseModel):\n    agent_name: AgentName\n    timestamp: datetime = Field(default_factory=datetime.utcnow)\n    status: AgentHealthStatus = AgentHealthStatus.healthy\n    current_task_id: UUID | None = None\n    tasks_completed_today: int = 0\n    cost_today_usd: float = 0.0\n    error_message: str | None = None\n\n\nclass AgentStatusRead(BaseModel):\n    agent_name: AgentName\n    status: AgentHealthStatus\n    last_heartbeat: datetime | None\n    current_task_id: UUID | None\n    tasks_completed_today: int\n    cost_today_usd: float\n    uptime_seconds: float | None\n    enabled: bool = True\n\n    class Config:\n        from_attributes = True\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\agent.py"
+}

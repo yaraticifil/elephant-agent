@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\models.yaml",
+      "start_line": 1,
+      "end_line": 21,
+      "content_hash": "a5dc64145d967b90",
+      "timestamp": "2026-03-08T10:32:48.959907",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "local:\n  default: \"llama3.1:8b\"\n  fast: \"llama3.2:3b\"\n  embedding: \"nomic-embed-text\"\n\ncloud:\n  high_quality: \"claude-3-5-sonnet-20241022\"\n  standard: \"gpt-4o-mini\"\n  fast: \"claude-3-haiku-20240307\"\n  long_context: \"gemini-1.5-pro\"\n  image: \"dall-e-3\"\n\nrouting:\n  privacy_override_to_local: true\n  cost_80pct_downgrade: true\n  long_context_threshold_tokens: 50000\n  complexity_thresholds:\n    high: 0.80\n    medium: 0.55\n    low: 0.35\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\models.yaml"
+}

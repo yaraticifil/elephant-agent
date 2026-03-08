@@ -1,0 +1,147 @@
+{
+  "agent_toolset_mode": "codex",
+  "ab_params": {},
+  "theme": "dark",
+  "locale": "tr",
+  "updateMode": "auto",
+  "useFullShellEnvironment": false,
+  "agentModels": [
+    {
+      "key": "claude-sonnet-4-6",
+      "enabled": true
+    },
+    {
+      "key": "claude-sonnet-4-6-1m",
+      "enabled": true
+    },
+    {
+      "key": "claude-opus-4-6",
+      "enabled": true
+    },
+    {
+      "key": "claude-opus-4-6-1m",
+      "enabled": true
+    },
+    {
+      "key": "gemini-3.1-pro-preview",
+      "enabled": true
+    },
+    {
+      "key": "gemini-3-flash-preview",
+      "enabled": true
+    },
+    {
+      "key": "gpt-5.3-codex",
+      "enabled": true
+    },
+    {
+      "key": "gpt-5.2",
+      "enabled": true
+    },
+    {
+      "key": "claude-opus-4-5@20251101",
+      "enabled": false
+    },
+    {
+      "key": "claude-sonnet-4-5@20250929",
+      "enabled": false
+    },
+    {
+      "key": "claude-haiku-4-5@20251001",
+      "enabled": true
+    },
+    {
+      "key": "gpt-5.2-codex",
+      "enabled": false
+    },
+    {
+      "key": "gpt-5-codex",
+      "enabled": false
+    },
+    {
+      "key": "gpt-5.1",
+      "enabled": false
+    },
+    {
+      "key": "gpt-5",
+      "enabled": false
+    },
+    {
+      "key": "MiniMax-M2.5",
+      "enabled": true
+    },
+    {
+      "key": "glm-5",
+      "enabled": true
+    },
+    {
+      "key": "kimi-k2.5",
+      "enabled": true
+    },
+    {
+      "key": "kimi-k2-thinking-turbo",
+      "enabled": false
+    }
+  ],
+  "terminal": {
+    "fontSize": 12,
+    "fontFamily": "",
+    "cursorStyle": "block",
+    "cursorBlink": false,
+    "lineHeight": 1,
+    "cursorWidth": 1,
+    "letterSpacing": 0
+  },
+  "notificationInAppEnabled": true,
+  "notificationSystemEnabled": true,
+  "debugSubagentEnable": false,
+  "smartSuggestionsEnabled": true,
+  "autoIndexing": false,
+  "editor": {
+    "fontSize": 12,
+    "tabSize": 4,
+    "theme": "pierre",
+    "autoSave": false,
+    "autoSaveDelay": 1000,
+    "showMinimap": true,
+    "showLineNumbers": true,
+    "wordWrap": false,
+    "formatOnPaste": false,
+    "formatOnType": false,
+    "renderWhitespace": "none",
+    "smoothScrolling": false,
+    "mouseWheelZoom": false,
+    "stickyScroll": false,
+    "bracketPairColorization": true,
+    "folding": true,
+    "renderLineHighlight": "line",
+    "cursorBlinking": "blink",
+    "cursorStyle": "line",
+    "highlightActiveIndentGuide": true,
+    "lineBlame": true,
+    "dirtyDiff": true
+  },
+  "diff": {
+    "viewMode": "side-by-side",
+    "fontSize": 12,
+    "showLineNumbers": true,
+    "showMinimap": false,
+    "wordWrap": false,
+    "renderWhitespace": "selection",
+    "ignoreTrimWhitespace": false,
+    "hideUnchangedRegions": true,
+    "smoothScrolling": true,
+    "mouseWheelZoom": false,
+    "stickyScroll": true,
+    "bracketPairColorization": true
+  },
+  "reviewAgents": {
+    "userModels": [
+      "gemini-3.1-pro-preview",
+      "claude-opus-4-6",
+      "gpt-5.2"
+    ],
+    "multiModel": true
+  },
+  "ab_params_overrides": {}
+}

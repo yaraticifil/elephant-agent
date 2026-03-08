@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\messaging\\events.py",
+      "start_line": 1,
+      "end_line": 57,
+      "content_hash": "4e4b0b8eb739f6c0",
+      "timestamp": "2026-03-08T10:24:52.042963",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom typing import Any\nfrom shared.schemas.message import BusMessage, EventType\nfrom shared.schemas.task import TaskRead\n\n\ndef build_task_event(\n    event_type: EventType,\n    task: TaskRead,\n    sender: str,\n    recipient: str | None = None,\n    payload: dict[str, Any] | None = None,\n) -> BusMessage:\n    base: dict[str, Any] = {\n        \"task_id\": str(task.task_id),\n        \"task_type\": task.task_type,\n        \"status\": task.status,\n        \"title\": task.title,\n        \"mode\": task.mode,\n    }\n    if payload:\n        base.update(payload)\n    return BusMessage(\n        event_type=event_type,\n        sender_agent=sender,\n        recipient_agent=recipient,\n        task_id=task.task_id,\n        payload=base,\n        priority=task.priority,\n    )\n\n\ndef build_alert_event(\n    sender: str,\n    message: str,\n    severity: str,\n    detail: dict[str, Any] | None = None,\n) -> BusMessage:\n    return BusMessage(\n        event_type=EventType.system_alert,\n        sender_agent=sender,\n        payload={\"message\": message, \"severity\": severity, \"detail\": detail or {}},\n        priority=1 if severity == \"critical\" else 3,\n    )\n\n\ndef build_heartbeat_event(\n    agent_name: str, status: str, task_id: str | None = None\n) -> BusMessage:\n    return BusMessage(\n        event_type=EventType.agent_heartbeat,\n        sender_agent=agent_name,\n        recipient_agent=\"watchdog\",\n        payload={\"agent_name\": agent_name, \"status\": status, \"current_task_id\": task_id},\n        requires_ack=False,\n    )\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\messaging\\events.py"
+}

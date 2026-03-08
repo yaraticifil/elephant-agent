@@ -1,0 +1,259 @@
+"""
+ELEPHANT — Planner Agent
+Receives goals, queries memory, decomposes into a workflow DAG,
+and dispatches tasks to the Orchestrator via the message bus.
+"""
+from __future__ import annotations
+import asyncio
+import logging
+import uuid
+from typing import Any
+import httpx
+
+from services.agents.base.agent import BaseAgent
+from shared.schemas.message import BusMessage, EventType
+from shared.schemas.task import TaskCreate, TaskBrief, TaskType, TaskMode, TaskOrigin, TaskRiskLevel
+from shared.config.base import get_settings
+from shared.messaging.events import build_agent_task_request
+
+settings = get_settings()
+logger = logging.getLogger(__name__)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TASK TYPE ROUTING: defines which agent handles each task type
+# ──────────────────────────────────────────────────────────────────────────────
+TASK_TYPE_AGENT_MAP: dict[TaskType, str] = {
+    TaskType.research: "researcher",
+    TaskType.creation: "creator",
+    TaskType.strategy: "creator",
+    TaskType.image: "visual",
+    TaskType.report: "reporter",
+    TaskType.publish: "executor",
+    TaskType.reminder: "memory_agent",
+    TaskType.personal: "creator",
+    TaskType.system: "orchestrator",
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# WORKFLOW TEMPLATES: canonical pipelines per goal type
+# ──────────────────────────────────────────────────────────────────────────────
+WORKFLOW_TEMPLATES: dict[str, list[dict]] = {
+    "research": [
+        {"step": 1, "agent": "researcher", "type": TaskType.research,   "label": "Deep-dive research & source gathering"},
+        {"step": 2, "agent": "reporter",   "type": TaskType.report,     "label": "Synthesize findings into structured report"},
+    ],
+    "content_creation": [
+        {"step": 1, "agent": "researcher", "type": TaskType.research,   "label": "Background research"},
+        {"step": 2, "agent": "creator",    "type": TaskType.creation,   "label": "Draft content in Salim's voice"},
+        {"step": 3, "agent": "critic",     "type": TaskType.system,     "label": "Quality gate: tone & brand check"},
+        {"step": 4, "agent": "auditor",    "type": TaskType.system,     "label": "Compliance check + approval token"},
+        {"step": 5, "agent": "executor",   "type": TaskType.publish,    "label": "Publish via approved channel"},
+    ],
+    "strategy": [
+        {"step": 1, "agent": "researcher", "type": TaskType.research,   "label": "Market & competitive research"},
+        {"step": 2, "agent": "creator",    "type": TaskType.strategy,   "label": "Draft strategic document"},
+        {"step": 3, "agent": "critic",     "type": TaskType.system,     "label": "Strategic critique & alignment"},
+        {"step": 4, "agent": "reporter",   "type": TaskType.report,     "label": "Final strategic brief"},
+    ],
+    "image_generation": [
+        {"step": 1, "agent": "visual",     "type": TaskType.image,      "label": "Generate visual assets"},
+        {"step": 2, "agent": "critic",     "type": TaskType.system,     "label": "Brand consistency review"},
+        {"step": 3, "agent": "auditor",    "type": TaskType.system,     "label": "Content compliance check"},
+    ],
+    "report": [
+        {"step": 1, "agent": "reporter",   "type": TaskType.report,     "label": "Compile and format report"},
+    ],
+    "default": [
+        {"step": 1, "agent": "researcher", "type": TaskType.research,   "label": "Research"},
+        {"step": 2, "agent": "creator",    "type": TaskType.creation,   "label": "Create output"},
+        {"step": 3, "agent": "critic",     "type": TaskType.system,     "label": "Review"},
+    ],
+}
+
+
+def _classify_goal(title: str, task_type: TaskType) -> str:
+    """Classify a goal into a workflow template key."""
+    title_lower = title.lower()
+    if task_type == TaskType.research:
+        return "research"
+    if task_type in (TaskType.creation, TaskType.publish):
+        return "content_creation"
+    if task_type == TaskType.strategy:
+        return "strategy"
+    if task_type == TaskType.image:
+        return "image_generation"
+    if task_type == TaskType.report:
+        return "report"
+    # Heuristic title-based detection
+    if any(k in title_lower for k in ("write", "create", "draft", "post", "linkedin", "tweet")):
+        return "content_creation"
+    if any(k in title_lower for k in ("strategy", "strategic", "roadmap", "plan")):
+        return "strategy"
+    if any(k in title_lower for k in ("image", "visual", "design", "logo", "banner")):
+        return "image_generation"
+    if any(k in title_lower for k in ("report", "brief", "summary", "digest")):
+        return "report"
+    return "research"
+
+
+class PlannerAgent(BaseAgent):
+    """
+    The Planner:
+    - Subscribes to task_created events
+    - Queries memory for relevant context (Stage 3 — stubbed here)
+    - Decomposes the goal into a workflow DAG
+    - Creates subtasks on the Orchestrator API
+    - Dispatches first subtask to the appropriate agent
+    """
+
+    def __init__(self):
+        super().__init__("planner")
+
+    def subscribed_events(self) -> list[EventType]:
+        return [EventType.task_created, EventType.agent_task_request]
+
+    async def handle_message(self, msg: BusMessage) -> None:
+        if msg.event_type == EventType.task_created:
+            await self._handle_task_created(msg)
+        elif msg.event_type == EventType.agent_task_request:
+            # Direct task dispatch to planner (e.g. from interacter)
+            if msg.recipient_agent == self.agent_name:
+                await self._handle_task_created(msg)
+
+    # ──────────────────────────────────────────────────────────────────────────
+    async def _handle_task_created(self, msg: BusMessage) -> None:
+        payload = msg.payload or {}
+        task_id   = str(msg.task_id or payload.get("task_id", ""))
+        title     = payload.get("title", "Untitled")
+        task_type_raw = payload.get("task_type", "research")
+        mode_raw  = payload.get("mode", "work")
+
+        # Only plan work-mode tasks unless we see explicit planner assignment
+        if mode_raw == "life":
+            logger.info("planner_skipping_life_mode_task", extra={"task_id": task_id})
+            return
+
+        try:
+            task_type = TaskType(task_type_raw)
+        except ValueError:
+            task_type = TaskType.research
+
+        logger.info("planner_received_goal", extra={
+            "task_id": task_id, "title": title, "task_type": task_type_raw
+        })
+
+        # 1. Query memory (stub: returns empty context in Stage 2)
+        memory_context = await self._retrieve_memory(title)
+
+        # 2. Decompose into DAG
+        workflow_key = _classify_goal(title, task_type)
+        template     = WORKFLOW_TEMPLATES.get(workflow_key, WORKFLOW_TEMPLATES["default"])
+
+        logger.info("planner_dag_constructed", extra={
+            "parent_task_id": task_id,
+            "workflow": workflow_key,
+            "steps": len(template),
+        })
+
+        # 3. Create subtasks via Orchestrator API
+        subtask_ids: list[str] = []
+        for step in template:
+            subtask = await self._create_subtask(
+                title=f"[{step['step']}/{len(template)}] {step['label']}",
+                task_type=step["type"],
+                parent_task_id=task_id,
+                assigned_agent=step["agent"],
+                brief_topic=title,
+                memory_context=memory_context,
+                mode=TaskMode(mode_raw),
+            )
+            if subtask:
+                subtask_ids.append(subtask.get("task_id", ""))
+
+        # 4. Dispatch first subtask to its agent
+        if template and subtask_ids:
+            first_step = template[0]
+            first_task_id = subtask_ids[0]
+            await self._dispatch_to_agent(
+                agent=first_step["agent"],
+                task_id=first_task_id,
+                title=f"{first_step['label']} — {title}",
+                payload={
+                    "task_id": first_task_id,
+                    "parent_task_id": task_id,
+                    "brief": {"topic": title, "memory_context": memory_context},
+                    "workflow_key": workflow_key,
+                    "all_subtask_ids": subtask_ids,
+                }
+            )
+            logger.info("planner_dispatched_first_step", extra={
+                "agent": first_step["agent"],
+                "task_id": first_task_id,
+                "parent": task_id,
+            })
+
+    # ──────────────────────────────────────────────────────────────────────────
+    async def _retrieve_memory(self, query: str) -> str:
+        """
+        Stage 2 stub — returns empty context.
+        Stage 3: Will query Qdrant (vector) + PostgreSQL + Neo4j via Memory Agent.
+        """
+        logger.debug("planner_memory_query_stub", extra={"query": query[:80]})
+        return ""
+
+    async def _create_subtask(
+        self,
+        title: str,
+        task_type: TaskType,
+        parent_task_id: str,
+        assigned_agent: str,
+        brief_topic: str,
+        memory_context: str,
+        mode: TaskMode,
+    ) -> dict | None:
+        task_create = TaskCreate(
+            title=title,
+            task_type=task_type,
+            mode=mode,
+            origin=TaskOrigin.agent_spawn,
+            assigned_agent=assigned_agent,
+            parent_task_id=parent_task_id,
+            brief=TaskBrief(
+                topic=brief_topic,
+                additional={"context": memory_context[:500]} if memory_context else {},
+            ),
+            risk_level=TaskRiskLevel.low,
+        )
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    f"{settings.ORCHESTRATOR_URL}/tasks",
+                    json=task_create.model_dump(mode="json"),
+                )
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as exc:
+            logger.error("planner_subtask_create_failed", extra={"error": str(exc), "title": title})
+            return None
+
+    async def _dispatch_to_agent(
+        self, agent: str, task_id: str, title: str, payload: dict[str, Any]
+    ) -> None:
+        """Publish a task dispatch event on the message bus targeting a specific agent."""
+        msg = build_agent_task_request(
+            sender=self.agent_name,
+            recipient=agent,
+            task_id=task_id,
+            payload=payload,
+        )
+        await self.bus.publish(msg)
+        logger.info("planner_dispatched", extra={"agent": agent, "task_id": task_id})
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, "/app")
+    from shared.logging.config import configure_logging
+    configure_logging("agent_planner", settings.LOG_LEVEL)
+    asyncio.run(PlannerAgent().start())

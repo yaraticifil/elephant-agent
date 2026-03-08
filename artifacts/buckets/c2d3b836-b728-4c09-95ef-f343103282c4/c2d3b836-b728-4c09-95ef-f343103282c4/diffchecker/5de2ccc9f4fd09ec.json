@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\orchestrator\\api\\routes\\agents.py",
+      "start_line": 1,
+      "end_line": 46,
+      "content_hash": "79dc824811b68e56",
+      "timestamp": "2026-03-08T10:27:24.130029",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom fastapi import APIRouter, Depends, HTTPException\nfrom sqlalchemy import select\nfrom sqlalchemy.ext.asyncio import AsyncSession\nfrom services.orchestrator.db.session import get_session\nfrom services.memory.relational.models import AgentRegistry\nfrom shared.schemas.agent import AgentStatusRead, AgentHealthStatus\n\nrouter = APIRouter(prefix=\"/agents\", tags=[\"agents\"])\n\n\n@router.get(\"\", response_model=list[AgentStatusRead])\nasync def list_agents(session: AsyncSession = Depends(get_session)):\n    result = await session.execute(select(AgentRegistry))\n    agents = result.scalars().all()\n    return [\n        AgentStatusRead(\n            agent_name=a.agent_name,\n            status=AgentHealthStatus(a.status),\n            last_heartbeat=a.last_heartbeat,\n            current_task_id=a.current_task_id,\n            tasks_completed_today=a.tasks_completed_today,\n            cost_today_usd=a.cost_today_usd,\n            uptime_seconds=None,\n            enabled=a.enabled,\n        )\n        for a in agents\n    ]\n\n\n@router.get(\"/{agent_name}\", response_model=AgentStatusRead)\nasync def get_agent(agent_name: str, session: AsyncSession = Depends(get_session)):\n    agent = await session.get(AgentRegistry, agent_name)\n    if not agent:\n        raise HTTPException(status_code=404, detail=f\"Agent {agent_name} not found\")\n    return AgentStatusRead(\n        agent_name=agent.agent_name,\n        status=AgentHealthStatus(agent.status),\n        last_heartbeat=agent.last_heartbeat,\n        current_task_id=agent.current_task_id,\n        tasks_completed_today=agent.tasks_completed_today,\n        cost_today_usd=agent.cost_today_usd,\n        uptime_seconds=None,\n        enabled=agent.enabled,\n    )\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\orchestrator\\api\\routes\\agents.py"
+}

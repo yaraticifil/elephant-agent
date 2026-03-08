@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\cost.py",
+      "start_line": 1,
+      "end_line": 27,
+      "content_hash": "094e7a67f93e30c4",
+      "timestamp": "2026-03-08T10:24:09.982936",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom datetime import datetime\nfrom uuid import UUID, uuid4\nfrom pydantic import BaseModel, Field\n\n\nclass CostRecord(BaseModel):\n    record_id: UUID = Field(default_factory=uuid4)\n    timestamp: datetime = Field(default_factory=datetime.utcnow)\n    agent_name: str\n    task_id: UUID | None = None\n    model_id: str\n    provider: str\n    tokens_in: int = 0\n    tokens_out: int = 0\n    cost_usd: float\n    cumulative_today_usd: float = 0.0\n\n\nclass BudgetStatus(BaseModel):\n    daily_limit_usd: float\n    spent_today_usd: float\n    percent_used: float\n    alert_level: str\n    cloud_calls_active: bool\n    last_updated: datetime\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\cost.py"
+}

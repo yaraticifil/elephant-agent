@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\agents.yaml",
+      "start_line": 1,
+      "end_line": 68,
+      "content_hash": "0cb0e1b1200651c0",
+      "timestamp": "2026-03-08T10:32:30.768704",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "agents:\n  planner:\n    enabled: true\n    max_concurrent_tasks: 3\n    heartbeat_interval_seconds: 30\n    mode: both\n\n  researcher:\n    enabled: true\n    max_concurrent_tasks: 2\n    heartbeat_interval_seconds: 30\n    mode: work\n\n  creator:\n    enabled: true\n    max_concurrent_tasks: 2\n    heartbeat_interval_seconds: 30\n    mode: both\n\n  visual:\n    enabled: true\n    max_concurrent_tasks: 1\n    heartbeat_interval_seconds: 30\n    mode: work\n\n  critic:\n    enabled: true\n    max_concurrent_tasks: 3\n    heartbeat_interval_seconds: 30\n    mode: work\n\n  memory_agent:\n    enabled: true\n    max_concurrent_tasks: 10\n    heartbeat_interval_seconds: 30\n    mode: both\n\n  executor:\n    enabled: true\n    max_concurrent_tasks: 1\n    heartbeat_interval_seconds: 30\n    mode: work\n    require_approval: true\n\n  watchdog:\n    enabled: true\n    heartbeat_interval_seconds: 15\n    missed_heartbeat_threshold_multiplier: 2\n    mode: system\n\n  auditor:\n    enabled: true\n    max_concurrent_tasks: 5\n    heartbeat_interval_seconds: 30\n    mode: work\n\n  interacter:\n    enabled: true\n    max_concurrent_tasks: 5\n    heartbeat_interval_seconds: 30\n    mode: both\n\n  reporter:\n    enabled: true\n    max_concurrent_tasks: 2\n    heartbeat_interval_seconds: 30\n    mode: work\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\agents.yaml"
+}

@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\errors\\exceptions.py",
+      "start_line": 1,
+      "end_line": 31,
+      "content_hash": "15a19f1809bd667a",
+      "timestamp": "2026-03-08T10:25:18.633351",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\n\n\nclass ElephantError(Exception):\n    pass\n\n\nclass TaskNotFoundError(ElephantError):\n    def __init__(self, task_id: str):\n        super().__init__(f\"Task not found: {task_id}\")\n\n\nclass AgentNotFoundError(ElephantError):\n    def __init__(self, agent_name: str):\n        super().__init__(f\"Agent not found: {agent_name}\")\n\n\nclass BusNotConnectedError(ElephantError):\n    def __init__(self):\n        super().__init__(\"Message bus is not connected\")\n\n\nclass ApprovalRequiredError(ElephantError):\n    def __init__(self, task_id: str):\n        super().__init__(f\"Approval required for task: {task_id}\")\n\n\nclass BudgetExceededError(ElephantError):\n    def __init__(self):\n        super().__init__(\"Daily budget exceeded \u2014 cloud calls suspended\")\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\errors\\exceptions.py"
+}

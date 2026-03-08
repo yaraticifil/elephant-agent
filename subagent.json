@@ -1,0 +1,31 @@
+{
+  "subagents": [
+    {
+      "id": "bbb607d2ba57d79f",
+      "name": "Verifier",
+      "isInner": true,
+      "disabled": false,
+      "description": "Built-in subagent that provides quick code checks. Simply @ it during your coding tasks.",
+      "prompt": "",
+      "tools": []
+    },
+    {
+      "id": "93215b7f20263423",
+      "name": "Verdent-helper",
+      "isInner": true,
+      "disabled": false,
+      "description": "Your Verdent assistant for documentation and usage guidance. @Verdent-helper it when you have questions about Verdent features.",
+      "prompt": "",
+      "tools": []
+    },
+    {
+      "id": "a6f978b9e8258c77",
+      "name": "Reviewer",
+      "isInner": true,
+      "disabled": false,
+      "description": "Reviewer finds errors, edge cases, and risks in your code, with suggested fixes.",
+      "prompt": "",
+      "tools": []
+    }
+  ]
+}

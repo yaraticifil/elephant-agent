@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\env.template",
+      "start_line": 1,
+      "end_line": 20,
+      "content_hash": "c2d7b0d6d2f55ca1",
+      "timestamp": "2026-03-08T10:32:21.794090",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "POSTGRES_DB=elephant\nPOSTGRES_USER=elephant\nPOSTGRES_PASSWORD=CHANGE_ME_STRONG_PASSWORD\nPOSTGRES_URL=postgresql+asyncpg://elephant:CHANGE_ME_STRONG_PASSWORD@postgres:5432/elephant\n\nREDIS_PASSWORD=CHANGE_ME_REDIS_PASSWORD\nREDIS_URL=redis://:CHANGE_ME_REDIS_PASSWORD@redis:6379/0\n\nNEO4J_PASSWORD=CHANGE_ME_NEO4J_PASSWORD\n\nELEPHANT_ENV=development\nLOG_LEVEL=INFO\nDAILY_BUDGET_USD=10.00\n\n# API KEYS (Stage 5 - bos birakin simdilik)\nOPENAI_API_KEY=\nANTHROPIC_API_KEY=\nGOOGLE_AI_API_KEY=\nTAVILY_API_KEY=\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\env.template"
+}

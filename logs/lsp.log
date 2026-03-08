@@ -1,0 +1,5 @@
+[2026-03-08 09:29:30.663] [INFO] [project:1] Initializing LSP: C:\Users\Lenovo\.verdent\verdent-projects\elephant-mimar-agent (remote=false)
+[2026-03-08 09:29:30.664] [DEBUG] [detector] Detecting languages for: C:\Users\Lenovo\.verdent\verdent-projects\elephant-mimar-agent
+[2026-03-08 09:29:30.679] [INFO] [detector] Detected languages: []
+[2026-03-08 09:29:30.679] [INFO] [project:1] Detected languages: []
+[2026-03-08 09:29:30.680] [INFO] [project:1] No enabled languages (all disabled or none detected)
