@@ -22,7 +22,7 @@ class MessageBus:
         )
         try:
             await self._client.xgroup_create(
-                STREAM_NAME, CONSUMER_GROUP, id="0", mkstream=True
+                STREAM_NAME, "elephant_default_cg", id="0", mkstream=True
             )
         except Exception:
             pass
@@ -51,10 +51,18 @@ class MessageBus:
         event_filter: list[EventType] | None = None,
         block_ms: int = 5000,
     ) -> None:
+        cg_name = f"elephant_cg_{consumer_name}"
+        try:
+            await self._client.xgroup_create(
+                STREAM_NAME, cg_name, id="0", mkstream=True
+            )
+        except Exception:
+            pass
+
         while True:
             try:
                 messages = await self._client.xreadgroup(
-                    groupname=CONSUMER_GROUP,
+                    groupname=cg_name,
                     consumername=consumer_name,
                     streams={STREAM_NAME: ">"},
                     count=10,
@@ -67,16 +75,16 @@ class MessageBus:
                         try:
                             bus_msg = BusMessage.model_validate_json(fields["data"])
                             if event_filter and bus_msg.event_type not in event_filter:
-                                await self._client.xack(STREAM_NAME, CONSUMER_GROUP, msg_id)
+                                await self._client.xack(STREAM_NAME, cg_name, msg_id)
                                 continue
                             await handler(bus_msg)
-                            await self._client.xack(STREAM_NAME, CONSUMER_GROUP, msg_id)
+                            await self._client.xack(STREAM_NAME, cg_name, msg_id)
                         except Exception as exc:
                             logger.error(
                                 "bus_message_error",
                                 extra={"msg_id": msg_id, "error": str(exc)}
                             )
-                            await self._client.xack(STREAM_NAME, CONSUMER_GROUP, msg_id)
+                            await self._client.xack(STREAM_NAME, cg_name, msg_id)
             except Exception as exc:
                 logger.error("bus_subscribe_loop_error", extra={"error": str(exc)})
                 import asyncio
