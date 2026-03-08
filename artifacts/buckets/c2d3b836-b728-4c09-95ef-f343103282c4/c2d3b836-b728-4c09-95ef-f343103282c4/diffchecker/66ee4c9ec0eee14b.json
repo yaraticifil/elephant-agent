@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\tools.yaml",
+      "start_line": 1,
+      "end_line": 62,
+      "content_hash": "0ced30f2187b4a1d",
+      "timestamp": "2026-03-08T10:33:01.593125",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "tools:\n  web_search:\n    allowed_agents: [researcher]\n    approval_level: none\n    rate_limit_per_hour: 100\n    sandbox_required: false\n\n  browser_automation:\n    allowed_agents: [researcher]\n    approval_level: none\n    rate_limit_per_hour: 20\n    sandbox_required: true\n    network: restricted\n\n  document_parser:\n    allowed_agents: [researcher, memory_agent, reporter]\n    approval_level: none\n    sandbox_required: false\n\n  file_read:\n    allowed_agents: [planner, researcher, creator, visual, critic, memory_agent, executor, watchdog, auditor, interacter, reporter]\n    approval_level: none\n\n  file_write:\n    allowed_agents:\n      researcher: research_output/\n      creator: drafts/\n      visual: assets/visuals/\n      memory_agent: memory/\n      executor: output/\n      auditor: audit/\n      reporter: reports/\n    approval_level: auditor\n\n  code_execution:\n    allowed_agents: [researcher, visual]\n    approval_level: none\n    sandbox_required: true\n    network: none\n    timeout_seconds: 60\n    memory_limit_mb: 512\n\n  image_generation:\n    allowed_agents: [visual]\n    approval_level: auto\n    cost_per_call_usd: 0.04\n\n  social_apis:\n    allowed_agents: [executor]\n    approval_level: user\n    requires_auditor_token: true\n\n  email:\n    allowed_agents: [executor]\n    approval_level: user\n    requires_auditor_token: true\n\n  calendar:\n    read_agents: [planner, watchdog, interacter, reporter]\n    write_agents: [executor, interacter]\n    approval_level_write: auditor\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\config\\tools.yaml"
+}

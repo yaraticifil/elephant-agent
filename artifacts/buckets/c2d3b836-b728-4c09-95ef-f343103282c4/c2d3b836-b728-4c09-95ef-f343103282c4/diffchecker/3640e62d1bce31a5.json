@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\model_router\\__init__.py",
+      "start_line": 1,
+      "end_line": 1,
+      "content_hash": "e3b0c44298fc1c14",
+      "timestamp": "2026-03-08T10:31:26.678238",
+      "session_id": "f1252617-7f08-458e-9255-26d565cd22b1",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": ""
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\model_router\\__init__.py"
+}

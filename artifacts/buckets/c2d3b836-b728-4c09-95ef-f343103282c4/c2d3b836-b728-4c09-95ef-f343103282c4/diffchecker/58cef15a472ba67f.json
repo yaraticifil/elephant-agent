@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\model_router\\router.py",
+      "start_line": 1,
+      "end_line": 17,
+      "content_hash": "efcbe6adcf41665a",
+      "timestamp": "2026-03-08T10:33:40.678926",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\n\n\nclass ModelRouter:\n    \"\"\"\n    Stage 1: stub router \u2014 returns local model for everything.\n    Stage 5: real routing logic based on privacy, complexity, cost.\n    \"\"\"\n\n    def route(self, task_type: str, privacy: str = \"internal\", complexity: float = 0.5) -> dict:\n        if privacy in (\"personal\", \"confidential\"):\n            return {\"model\": \"llama3.1:8b\", \"provider\": \"local\", \"reason\": \"privacy_override\"}\n        return {\"model\": \"llama3.1:8b\", \"provider\": \"local\", \"reason\": \"stage1_stub\"}\n\n\nrouter = ModelRouter()\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\model_router\\router.py"
+}

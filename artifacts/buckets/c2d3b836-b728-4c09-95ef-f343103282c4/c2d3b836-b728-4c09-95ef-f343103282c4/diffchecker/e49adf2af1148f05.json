@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\config\\base.py",
+      "start_line": 1,
+      "end_line": 23,
+      "content_hash": "3b4030799fbd2a08",
+      "timestamp": "2026-03-08T10:25:05.379448",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom pydantic_settings import BaseSettings, SettingsConfigDict\nfrom functools import lru_cache\n\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(env_file=\".env\", extra=\"ignore\")\n\n    POSTGRES_URL: str = \"postgresql+asyncpg://elephant:password@localhost:5432/elephant\"\n    REDIS_URL: str = \"redis://localhost:6379/0\"\n    ELEPHANT_ENV: str = \"development\"\n    LOG_LEVEL: str = \"INFO\"\n    DAILY_BUDGET_USD: float = 10.00\n    SERVICE_NAME: str = \"unknown\"\n    AGENT_NAME: str = \"\"\n    HEARTBEAT_INTERVAL_SECONDS: int = 30\n    ORCHESTRATOR_URL: str = \"http://orchestrator:8000\"\n\n\n@lru_cache\ndef get_settings() -> Settings:\n    return Settings()\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\config\\base.py"
+}

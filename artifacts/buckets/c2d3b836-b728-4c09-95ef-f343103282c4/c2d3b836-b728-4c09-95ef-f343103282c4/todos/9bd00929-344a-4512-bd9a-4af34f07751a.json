@@ -1,0 +1,52 @@
+[
+  {
+    "content": "Repo yapısını oluştur + temel dosyalar",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Shared schemas (task, agent, message, memory, cost)",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Docker Compose + Dockerfiles",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Orchestrator API (FastAPI + task engine)",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Message Bus (Redis Streams)",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Database models + Alembic migration",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "BaseAgent + 11 agent stub/real implementations",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Watchdog (gerçek implementasyon)",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Interacter (gerçek implementasyon)",
+    "note": "",
+    "status": "completed"
+  },
+  {
+    "content": "Config dosyaları + scripts",
+    "note": "",
+    "status": "completed"
+  }
+]

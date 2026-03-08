@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\orchestrator\\Dockerfile",
+      "start_line": 1,
+      "end_line": 16,
+      "content_hash": "120e71158a42030d",
+      "timestamp": "2026-03-08T10:30:07.135893",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "FROM python:3.11-slim\nWORKDIR /app\nRUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*\nRUN pip install --no-cache-dir \\\n    fastapi==0.111.0 uvicorn[standard]==0.29.0 \\\n    sqlalchemy[asyncio]==2.0.30 asyncpg==0.29.0 \\\n    alembic==1.13.1 redis==5.0.4 \\\n    pydantic==2.7.1 pydantic-settings==2.2.1 \\\n    httpx==0.27.0 celery[redis]==5.4.0\nCOPY shared/ ./shared/\nCOPY config/ ./config/\nCOPY services/ ./services/\nENV PYTHONPATH=/app\nENV PYTHONUNBUFFERED=1\nCMD [\"uvicorn\", \"services.orchestrator.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\services\\orchestrator\\Dockerfile"
+}

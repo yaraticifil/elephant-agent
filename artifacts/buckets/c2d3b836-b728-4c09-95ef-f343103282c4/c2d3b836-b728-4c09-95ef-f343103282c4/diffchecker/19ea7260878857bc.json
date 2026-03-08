@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\logging\\config.py",
+      "start_line": 1,
+      "end_line": 54,
+      "content_hash": "f9c1ee00b70f2be5",
+      "timestamp": "2026-03-08T10:24:20.376194",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nimport logging\nimport sys\nimport json\nfrom datetime import datetime, timezone\n\n\nclass JSONFormatter(logging.Formatter):\n    SKIP_FIELDS = {\n        \"args\", \"asctime\", \"created\", \"exc_info\", \"exc_text\",\n        \"filename\", \"funcName\", \"id\", \"levelname\", \"levelno\",\n        \"lineno\", \"module\", \"msecs\", \"message\", \"msg\", \"name\",\n        \"pathname\", \"process\", \"processName\", \"relativeCreated\",\n        \"stack_info\", \"thread\", \"threadName\",\n        \"timestamp\", \"level\", \"logger\", \"service\", \"agent\"\n    }\n\n    def format(self, record: logging.LogRecord) -> str:\n        log_obj: dict = {\n            \"timestamp\": datetime.now(tz=timezone.utc).isoformat(),\n            \"level\": record.levelname,\n            \"logger\": record.name,\n            \"message\": record.getMessage(),\n            \"service\": getattr(record, \"service\", \"unknown\"),\n            \"agent\": getattr(record, \"agent\", None),\n            \"task_id\": getattr(record, \"task_id\", None),\n        }\n        for key, value in record.__dict__.items():\n            if key not in self.SKIP_FIELDS:\n                log_obj[key] = value\n        if record.exc_info:\n            log_obj[\"exception\"] = self.formatException(record.exc_info)\n        return json.dumps(log_obj, default=str)\n\n\ndef configure_logging(service_name: str, log_level: str = \"INFO\") -> None:\n    root = logging.getLogger()\n    root.setLevel(getattr(logging, log_level.upper(), logging.INFO))\n    handler = logging.StreamHandler(sys.stdout)\n    handler.setFormatter(JSONFormatter())\n    root.handlers.clear()\n    root.addHandler(handler)\n\n    old_factory = logging.getLogRecordFactory()\n\n    def record_factory(*args, **kwargs):\n        record = old_factory(*args, **kwargs)\n        record.service = service_name\n        return record\n\n    logging.setLogRecordFactory(record_factory)\n    logging.getLogger(\"uvicorn.access\").setLevel(logging.WARNING)\n    logging.getLogger(\"sqlalchemy.engine\").setLevel(logging.WARNING)\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\logging\\config.py"
+}

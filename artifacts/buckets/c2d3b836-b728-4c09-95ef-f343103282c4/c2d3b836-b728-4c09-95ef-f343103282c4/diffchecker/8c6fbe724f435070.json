@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "filename": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\memory.py",
+      "start_line": 1,
+      "end_line": 47,
+      "content_hash": "233349e3d20b8b8d",
+      "timestamp": "2026-03-08T10:24:02.795499",
+      "session_id": "9bd00929-344a-4512-bd9a-4af34f07751a",
+      "group_id": "c2d3b836-b728-4c09-95ef-f343103282c4",
+      "content_snippet": "from __future__ import annotations\nfrom datetime import datetime\nfrom enum import Enum\nfrom typing import Any\nfrom uuid import UUID, uuid4\nfrom pydantic import BaseModel, Field\n\n\nclass MemoryType(str, Enum):\n    strategic = \"strategic\"\n    project = \"project\"\n    conversation = \"conversation\"\n    document = \"document\"\n    personal = \"personal\"\n    relationship = \"relationship\"\n    knowledge_link = \"knowledge_link\"\n    system = \"system\"\n\n\nclass MemoryWriteRequest(BaseModel):\n    memory_id: UUID = Field(default_factory=uuid4)\n    memory_type: MemoryType\n    content: str\n    metadata: dict[str, Any] = Field(default_factory=dict)\n    source_agent: str\n    task_id: UUID | None = None\n    project_id: str | None = None\n    tags: list[str] = Field(default_factory=list)\n    ttl_hours: int | None = None\n\n\nclass MemoryQuery(BaseModel):\n    query_text: str\n    memory_types: list[MemoryType] = Field(default_factory=list)\n    requesting_agent: str\n    task_id: UUID | None = None\n    project_id: str | None = None\n    top_k: int = Field(default=12, ge=1, le=50)\n    recency_days: int | None = None\n\n\nclass MemoryQueryResult(BaseModel):\n    query_id: UUID = Field(default_factory=uuid4)\n    results: list[dict[str, Any]] = Field(default_factory=list)\n    total_found: int = 0\n    retrieval_ms: float = 0.0\n"
+    }
+  ],
+  "source_file": "C:\\Users\\Lenovo\\.verdent\\verdent-projects\\elephant-mimar-agent\\elephant\\shared\\schemas\\memory.py"
+}
