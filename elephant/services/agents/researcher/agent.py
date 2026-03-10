@@ -52,58 +52,55 @@ class ResearcherAgent(BaseAgent):
 
     async def _research(self, topic: str) -> str:
         """
-        Executes a web search on the given topic, fetches the top results,
-        extracts text, and synthesizes a basic report.
+        Executes a real web search on the given topic, fetches the top results,
+        extracts text, and synthesizes a structured markdown report.
         """
+        try:
+            return await asyncio.wait_for(self._execute_web_search(topic), timeout=10.0)
+        except Exception as exc:
+            logger.error("research_failed_or_timed_out", extra={"topic": topic, "error": str(exc)})
+            return f"## Summary\nResearch for {topic} failed or timed out.\n\n## Sources\nN/A\n\n## Key Findings\nFalling back to stub message."
+
+    async def _execute_web_search(self, topic: str) -> str:
+        from duckduckgo_search import DDGS
+        from bs4 import BeautifulSoup
+
         logger.info("researcher_searching_web", extra={"topic": topic})
         
-        try:
-            from duckduckgo_search import DDGS
-            from bs4 import BeautifulSoup
-        except ImportError:
-            return f"# Research Findings: {topic}\n\n[Error] Missing duckduckgo-search or bs4.\n"
-        
-        # Run synchronous search in a thread pool to avoid blocking the event loop
+        # 1. Search topic
         loop = asyncio.get_running_loop()
-        def do_search():
-            with DDGS() as ddgs:
-                return list(ddgs.text(topic, max_results=3))
-                
-        try:
-            results = await loop.run_in_executor(None, do_search)
-        except Exception as e:
-            logger.error(f"search_failed: {e}")
-            return f"# Research Findings: {topic}\n\n[Error] Search failed: {e}\n"
-            
-        research_fragments = []
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        results = await loop.run_in_executor(None, lambda: list(DDGS().text(topic, max_results=3)))
+
+        if not results:
+            return f"## Summary\nNo results found for {topic}.\n\n## Sources\nN/A\n\n## Key Findings\nNo web data available."
+
+        sources = []
+        findings = []
+
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
             for r in results:
                 url = r.get("href")
-                title = r.get("title")
-                snippet = r.get("body")
-                extracted_text = snippet
+                title = r.get("title", "Unknown Title")
+                sources.append(url)
+
                 try:
                     resp = await client.get(url)
                     if resp.status_code == 200:
-                        soup = BeautifulSoup(resp.text, "lxml")
-                        paragraphs = soup.find_all('p')
-                        text = " ".join([p.get_text() for p in paragraphs[:8]])
-                        if len(text) > 200:
-                            extracted_text = text[:1500] + "..."
-                except Exception as e:
-                    logger.warning(f"url_fetch_failed: {url} - {e}")
-                
-                research_fragments.append(
-                    f"### {title}\n"
-                    f"**Source:** {url}\n"
-                    f"**Summary:** {extracted_text}\n"
-                )
-                
-        if not research_fragments:
-            return f"# Research Findings: {topic}\n\nNo results found on the web.\n"
-            
-        report = f"# Research Findings: {topic}\n\n"
-        report += "\n".join(research_fragments)
+                        soup = BeautifulSoup(resp.text, "html.parser")
+                        paragraphs = soup.find_all("p")
+                        text = " ".join([p.get_text() for p in paragraphs[:5]])
+                        if len(text) > 100:
+                            findings.append(f"{title}: {text[:500]}...")
+                        else:
+                            findings.append(f"{title}: {r.get('body')}")
+                    else:
+                        findings.append(f"{title}: {r.get('body')}")
+                except Exception:
+                    findings.append(f"{title}: {r.get('body')}")
+
+        report = f"## Summary\nWeb research findings for topic: {topic}.\n\n"
+        report += "## Sources\n" + "\n".join([f"- {u}" for u in sources]) + "\n\n"
+        report += "## Key Findings\n" + "\n".join([f"- {f}" for f in findings])
         return report
 
     async def _store_findings(self, task_id: str, topic: str, findings: str) -> None:
