@@ -19,7 +19,6 @@ def route_task(state: AgentState) -> Literal["gatekeeper", "end"]:
 
 def run_gatekeeper(state: AgentState) -> AgentState:
     logger.info(f"Gatekeeper inspecting task {state['task_id']}")
-    # Mock logic: if 'sensitive' or 'dark' in title, it's local
     if "sensitive" in state["task_title"].lower() or "dark" in state["task_title"].lower():
         state["requires_cloud"] = False
         state["is_sensitive"] = True
@@ -40,9 +39,6 @@ def run_mask(state: AgentState) -> AgentState:
     state["current_agent"] = "mask"
     return state
 
-def mask_to_planner(state: AgentState) -> Literal["planner"]:
-    return "planner"
-
 def run_planner(state: AgentState) -> AgentState:
     logger.info(f"Planner processing task in Cloud with Vertex AI for task {state['task_id']}")
     state["current_agent"] = "planner"
@@ -53,11 +49,8 @@ def run_shadow(state: AgentState) -> AgentState:
     state["current_agent"] = "shadow"
     return state
 
-def end_task(state: AgentState) -> Literal["end"]:
-    return "end"
-
 try:
-    from langgraph.graph import StateGraph, END
+    from langgraph.graph import StateGraph, START, END
 
     workflow = StateGraph(AgentState)
 
@@ -66,7 +59,8 @@ try:
     workflow.add_node("planner", run_planner)
     workflow.add_node("shadow", run_shadow)
 
-    workflow.set_entry_point("gatekeeper")
+    # v0.3 API: use add_edge(START, ...) instead of set_entry_point()
+    workflow.add_edge(START, "gatekeeper")
 
     workflow.add_conditional_edges(
         "gatekeeper",

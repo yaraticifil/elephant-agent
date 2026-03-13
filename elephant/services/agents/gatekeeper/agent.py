@@ -3,12 +3,11 @@ import asyncio
 import logging
 from services.agents.base.agent import BaseAgent
 from shared.schemas.message import BusMessage, EventType
-from shared.logging.config import configure_logging
 from shared.config.base import get_settings
 
 settings = get_settings()
-configure_logging("agent_gatekeeper", settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
+
 
 class GatekeeperAgent(BaseAgent):
     def __init__(self):
@@ -43,8 +42,11 @@ class GatekeeperAgent(BaseAgent):
             )
             await self.bus.publish(forward_msg)
 
+
 if __name__ == "__main__":
     import sys
     sys.path.insert(0, "/app")
+    from shared.logging.config import configure_logging
+    configure_logging("agent_gatekeeper", settings.LOG_LEVEL)
     agent = GatekeeperAgent()
     asyncio.run(agent.start())

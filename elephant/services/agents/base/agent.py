@@ -85,3 +85,31 @@ class BaseAgent(ABC):
     @abstractmethod
     async def handle_message(self, msg: BusMessage) -> None:
         ...
+
+    # ── Shared Task Completion Helpers ─────────────────────────────────────
+    async def _complete_task(self, task_id: str, outputs: list[str], cost_usd: float = 0.0) -> None:
+        """Report task completion to Orchestrator."""
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                await client.post(
+                    f"{settings.ORCHESTRATOR_URL}/tasks/{task_id}/complete",
+                    params={"cost_usd": cost_usd},
+                    json=outputs,
+                )
+        except Exception as exc:
+            logger.error("task_complete_http_error", extra={
+                "agent": self.agent_name, "task_id": task_id, "error": str(exc)
+            })
+
+    async def _fail_task(self, task_id: str, error: str) -> None:
+        """Report task failure to Orchestrator."""
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                await client.post(
+                    f"{settings.ORCHESTRATOR_URL}/tasks/{task_id}/fail",
+                    params={"error": error},
+                )
+        except Exception as exc:
+            logger.error("task_fail_http_error", extra={
+                "agent": self.agent_name, "task_id": task_id, "error": str(exc)
+            })

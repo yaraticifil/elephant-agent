@@ -184,7 +184,8 @@ class PlannerAgent(BaseAgent):
 
         # 1.5. If research-based, augment context via Vertex AI Grounding
         if task_type in (TaskType.research, TaskType.strategy):
-            grounded_info = do_vertex_grounded_search(title)
+            loop = asyncio.get_running_loop()
+            grounded_info = await loop.run_in_executor(None, do_vertex_grounded_search, title)
             memory_context += "\n" + grounded_info
             logger.info("planner_grounding_applied", extra={"query": title})
 

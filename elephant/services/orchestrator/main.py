@@ -9,8 +9,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -50,6 +51,7 @@ app.add_middleware(
 
 # ── In-memory task store (Stage 2 — PostgreSQL in Stage 3) ────────────────
 import uuid
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -58,6 +60,26 @@ _tasks: dict[str, dict] = {}
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# ── BusMessage-compatible event publishing ────────────────────────────────
+def _build_bus_event(event_type: str, task_id: str, task: dict) -> str:
+    """Build a BusMessage-compatible JSON string for Redis publishing."""
+    from uuid import uuid4
+    event = {
+        "message_id": str(uuid4()),
+        "timestamp": _now(),
+        "event_type": event_type,
+        "sender_agent": "orchestrator",
+        "recipient_agent": None,
+        "task_id": task_id,
+        "payload": task,
+        "priority": 3,
+        "requires_ack": False,
+        "ttl_seconds": 300,
+        "correlation_id": None,
+    }
+    return json.dumps(event, default=str)
 
 
 # ── ROUTES ────────────────────────────────────────────────────────────────
@@ -111,16 +133,10 @@ async def create_task(body: dict):
     except Exception as e:
         logger.error(f"Error in langgraph processing: {e}")
 
-    # Publish to Redis bus
+    # Publish to Redis bus (BusMessage-compatible format)
     if redis_client:
-        import json
-        event = {
-            "event_type": "task.created",
-            "task_id": task_id,
-            "sender_agent": "orchestrator",
-            "payload": task,
-        }
-        await redis_client.xadd("elephant:bus", {"data": json.dumps(event)})
+        bus_event = _build_bus_event("task.created", task_id, task)
+        await redis_client.xadd("elephant:bus", {"data": bus_event})
 
     return task
 
@@ -135,7 +151,6 @@ async def list_tasks(status: str | None = None, limit: int = 50):
 
 @app.get("/tasks/{task_id}")
 async def get_task(task_id: str):
-    from fastapi import HTTPException
     task = _tasks.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
@@ -143,25 +158,43 @@ async def get_task(task_id: str):
 
 
 @app.post("/tasks/{task_id}/complete")
-async def complete_task(task_id: str, outputs: list[str] = [], cost_usd: float = 0.0):
-    from fastapi import HTTPException
+async def complete_task(task_id: str, outputs: list[str] = Body(default=[]), cost_usd: float = 0.0):
     task = _tasks.get(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        logger.warning(f"task_not_in_memory_creating_stub | id={task_id}")
+        task = {
+            "task_id": task_id,
+            "title": f"Stub Task {task_id[:8]}",
+            "status": "queued",
+            "created_at": _now(),
+        }
+        _tasks[task_id] = task
     task["status"] = "completed"
     task["outputs"] = outputs
     task["cost_usd"] = cost_usd
     task["updated_at"] = _now()
     logger.info(f"task_completed | id={task_id}")
+
+    # Publish task_completed event on bus
+    if redis_client:
+        bus_event = _build_bus_event("task.completed", task_id, task)
+        await redis_client.xadd("elephant:bus", {"data": bus_event})
+
     return task
 
 
 @app.post("/tasks/{task_id}/fail")
 async def fail_task(task_id: str, error: str = "unknown"):
-    from fastapi import HTTPException
     task = _tasks.get(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        logger.warning(f"task_not_in_memory_creating_stub | id={task_id}")
+        task = {
+            "task_id": task_id,
+            "title": f"Stub Task {task_id[:8]}",
+            "status": "queued",
+            "created_at": _now(),
+        }
+        _tasks[task_id] = task
     retries = task.get("retry_count", 0)
     if retries < 3:
         task["retry_count"] = retries + 1
@@ -175,7 +208,6 @@ async def fail_task(task_id: str, error: str = "unknown"):
 
 @app.delete("/tasks/{task_id}")
 async def cancel_task(task_id: str, reason: str = "cancelled"):
-    from fastapi import HTTPException
     task = _tasks.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
@@ -186,10 +218,16 @@ async def cancel_task(task_id: str, reason: str = "cancelled"):
 
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: str, body: dict):
-    from fastapi import HTTPException
     task = _tasks.get(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        logger.warning(f"task_not_in_memory_creating_stub | id={task_id}")
+        task = {
+            "task_id": task_id,
+            "title": f"Stub Task {task_id[:8]}",
+            "status": "queued",
+            "created_at": _now(),
+        }
+        _tasks[task_id] = task
     task.update(body)
     task["updated_at"] = _now()
     return task
@@ -205,6 +243,38 @@ async def list_agents():
 async def register_agent(body: dict):
     logger.info(f"agent_registered | name={body.get('agent_name')} | status={body.get('status')}")
     return {"registered": True, "agent_name": body.get("agent_name")}
+
+
+@app.get("/stream")
+async def stream_events():
+    """Server-Sent Events endpoint for real-time UI logging."""
+    async def event_generator():
+        if not redis_client:
+            yield "data: {\"event_type\":\"system\",\"payload\":\"no_redis_connection\"}\n\n"
+            return
+            
+        last_id = "$"
+        while True:
+            try:
+                messages = await redis_client.xread(
+                    streams={"elephant:bus": last_id}, count=10, block=2000
+                )
+                if messages:
+                    for _, entries in messages:
+                        for msg_id, fields in entries:
+                            last_id = msg_id
+                            yield f"data: {fields['data']}\n\n"
+                else:
+                    # Keep-alive comment
+                    yield ": keepalive\n\n"
+                    
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"sse_stream_error: {e}")
+                break
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":
