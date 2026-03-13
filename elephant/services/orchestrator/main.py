@@ -76,7 +76,7 @@ async def create_task(body: dict):
         "mode": body.get("mode", "work"),
         "status": "queued",
         "origin": body.get("origin", "user"),
-        "assigned_agent": body.get("assigned_agent"),
+        "assigned_agent": body.get("assigned_agent", "gatekeeper"),
         "parent_task_id": body.get("parent_task_id"),
         "brief": body.get("brief", {}),
         "outputs": [],
