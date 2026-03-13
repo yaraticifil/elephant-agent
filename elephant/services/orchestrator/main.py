@@ -87,6 +87,30 @@ async def create_task(body: dict):
     _tasks[task_id] = task
     logger.info(f"task_created | id={task_id} | title={task['title'][:60]}")
 
+    # Process via LangGraph if available
+    try:
+        from services.orchestrator.graph import app as graph_app
+        if graph_app:
+            logger.info("routing_task_via_langgraph")
+            initial_state = {
+                "task_id": task_id,
+                "task_title": task["title"],
+                "task_type": task["task_type"],
+                "status": "queued",
+                "current_agent": "orchestrator",
+                "is_sensitive": False,
+                "requires_cloud": False,
+                "context": task["brief"]
+            }
+            # Run graph async
+            result = await graph_app.ainvoke(initial_state)
+            logger.info(f"langgraph_result: {result}")
+            task["status"] = "graph_processed"
+    except ImportError as e:
+        logger.warning(f"Could not import langgraph: {e}")
+    except Exception as e:
+        logger.error(f"Error in langgraph processing: {e}")
+
     # Publish to Redis bus
     if redis_client:
         import json

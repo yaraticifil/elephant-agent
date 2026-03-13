@@ -21,7 +21,9 @@ RUN pip install --no-cache-dir \
     neo4j==5.19.0 \
     duckduckgo-search==5.3.1 \
     beautifulsoup4==4.12.3 \
-    lxml==5.2.2
+    lxml==5.2.2 \
+    langgraph==0.1.15 \
+    google-cloud-aiplatform==1.50.0
 
 COPY shared/ ./shared/
 COPY services/ ./services/

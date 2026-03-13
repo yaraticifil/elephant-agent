@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 ALL_AGENT_NAMES = [
     "planner", "researcher", "creator", "visual", "critic",
-    "memory_agent", "executor", "watchdog", "auditor", "interacter", "reporter"
+    "memory_agent", "executor", "watchdog", "auditor", "interacter", "reporter",
+    "gatekeeper", "shadow", "mask", "listener", "speaker"
 ]
 
 

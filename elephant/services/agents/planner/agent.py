@@ -19,6 +19,40 @@ from shared.messaging.events import build_agent_task_request
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+# ── VERTEX AI GROUNDING (Google Search) ────────────────────────────────────
+def do_vertex_grounded_search(query: str) -> str:
+    logger.info(f"Using Vertex AI Grounding (Google Search) for query: {query}")
+    try:
+        from google.cloud import aiplatform
+        from vertexai.preview.generative_models import GenerativeModel, Tool
+        import vertexai
+
+        # Initialize Vertex AI with standard application default credentials
+        # (Must be provided by the environment, e.g., GOOGLE_APPLICATION_CREDENTIALS)
+        try:
+            vertexai.init()
+        except Exception as e:
+            logger.warning(f"Vertex AI not initialized properly, falling back. Error: {e}")
+            return f"[Simulated Vertex AI Grounded Result for '{query}' - Credentials missing]"
+
+        # Use Gemini 1.5 Pro with Google Search Grounding Tool
+        tool = Tool.from_google_search_retrieval(google_search_retrieval={})
+        model = GenerativeModel("gemini-1.5-pro-preview-0409", tools=[tool])
+
+        prompt = f"Perform a comprehensive Google search and analysis for the following query: {query}"
+        response = model.generate_content(prompt)
+
+        if response.text:
+            return response.text
+        return f"[Vertex AI Search returned empty result for '{query}']"
+
+    except ImportError:
+         logger.warning("google-cloud-aiplatform not installed.")
+         return f"[Fallback Search Result for '{query}']"
+    except Exception as e:
+        logger.warning(f"Vertex AI Grounding error: {e}")
+        return f"[Fallback Search Result for '{query}']"
+
 # ──────────────────────────────────────────────────────────────────────────────
 # TASK TYPE ROUTING: defines which agent handles each task type
 # ──────────────────────────────────────────────────────────────────────────────
@@ -147,6 +181,12 @@ class PlannerAgent(BaseAgent):
 
         # 1. Query memory (stub: returns empty context in Stage 2)
         memory_context = await self._retrieve_memory(title)
+
+        # 1.5. If research-based, augment context via Vertex AI Grounding
+        if task_type in (TaskType.research, TaskType.strategy):
+            grounded_info = do_vertex_grounded_search(title)
+            memory_context += "\n" + grounded_info
+            logger.info("planner_grounding_applied", extra={"query": title})
 
         # 2. Decompose into DAG
         workflow_key = _classify_goal(title, task_type)

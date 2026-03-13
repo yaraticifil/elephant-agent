@@ -282,6 +282,86 @@ services:
       - elephant-network
     restart: unless-stopped
 
+  agent_gatekeeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-gatekeeper
+    command: python -m services.agents.gatekeeper.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: gatekeeper
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_shadow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-shadow
+    command: python -m services.agents.shadow.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: shadow
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_mask:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-mask
+    command: python -m services.agents.mask.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: mask
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_listener:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-listener
+    command: python -m services.agents.listener.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: listener
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_speaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-speaker
+    command: python -m services.agents.speaker.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: speaker
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
 networks:
   elephant-network:
     driver: bridge
