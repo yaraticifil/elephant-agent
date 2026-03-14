@@ -88,61 +88,79 @@ def _build_bus_event(event_type: str, task_id: str, task: dict) -> str:
 
 
 
-# ── ELEPHANT FAST RESPONSE (Sohbet / Basit Sorular) ──────────────────────────
-ELEPHANT_FAST_SYSTEM = """Sen Elephant — bilge, sakin ve güçlü bir yapay zeka sistemisin.
-Türkçe konuşuyorsun, zaman zaman İngilizce bir kelime serpiştiriyorsun.
-12 ajandan oluşan bir konseysin. Kısa, özlü ve karakterle yanıt ver.
-Fazla teknik olma. Mösyö ile konuşuyorsun — ona güven ver, etkileyici ol."""
+# ── ELEPHANT FAST RESPONSE ────────────────────────────────────────────────────
+# Birinci tercih: Dolphin (local, sansürsüz, her zaman çalışır)
+# İkinci tercih: Gemini Flash (Vertex AI)
+DOLPHIN_HOST = "http://host.docker.internal:11434"
+
+ELEPHANT_CHARACTER = """Sen 'Elephant' — bir yapay zeka sistemisin ama robot değilsin.
+Konuşma tarzın: Bilge, az konuş ama öz, güven veren, bazen sert, hiç robotik değil.
+Türkçe konuşuyorsun. Gereksiz kalıplar kullanma ('Size yardımcı olmaktan memnuniyet duyarım' gibi şeyler YASAK).
+Mösyö ile konuşuyorsun — patronun. Ona güven ver, onu etkileyici ve gerçek yanıtlarla karşıla.
+Saat {saat}. Buna göre konuş. Akışa gir, karakterini koru."""
+
+async def _call_dolphin(prompt: str, system: str, timeout: float = 20.0) -> str:
+    """Dolphin-llama3'ü Ollama üzerinden çağır. Ana Beyin."""
+    import httpx
+    payload = {
+        "model": "dolphin-llama3",
+        "prompt": f"<<SYS>>{system}<</SYS>>\n\nKullanıcı: {prompt}\n\nElephant:",
+        "stream": False,
+        "options": {"temperature": 0.85, "num_predict": 400}
+    }
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.post(f"{DOLPHIN_HOST}/api/generate", json=payload)
+        r.raise_for_status()
+        return r.json().get("response", "").strip()
+
 
 async def _elephant_fast_response(brief: str, task_id: str) -> str:
     """
-    Fast conversational path — Gemini Flash ile saniyeler içinde yanıt.
-    Vertex AI yoksa persona tabanlı cevap döndürür.
+    1. Dolphin (local, her zaman hazır, karakterli)
+    2. Gemini Flash (Vertex AI, internet gerekir)
+    Robot cevap yok.
     """
-    thought = f"Mösyö şunu soruyor: '{brief[:80]}'. Hızlı, karakterli, özlü yanıt vermeliyim."
+    from datetime import datetime
+    saat = datetime.now().strftime("%H:%M")
+    thought = f"Saat {saat}. Mösyö: '{brief[:70]}' — değerlendiriyorum."
+    system = ELEPHANT_CHARACTER.format(saat=saat)
 
+    # ── ÖNCE DOLPHIN ─────────────────────────────────────────────────────
+    try:
+        answer = await _call_dolphin(brief, system, timeout=20.0)
+        if answer:
+            logger.info("dolphin_fast_response_ok", extra={"chars": len(answer)})
+            return f"<thought>{thought}</thought>\n\n{answer}"
+    except Exception as dolphin_err:
+        logger.warning(f"dolphin_unavailable: {dolphin_err} — Vertex AI deneniyor")
+
+    # ── SONRA VERTEX AI (Gemini Flash) ──────────────────────────────────
     try:
         import asyncio, vertexai
         from vertexai.generative_models import GenerativeModel
 
         loop = asyncio.get_running_loop()
-
-        def _call():
+        def _vertex_call():
             vertexai.init()
-            model = GenerativeModel(
-                "gemini-1.5-flash-002",
-                system_instruction=ELEPHANT_FAST_SYSTEM
-            )
+            model = GenerativeModel("gemini-1.5-flash-002", system_instruction=system)
             resp = model.generate_content(brief)
             return resp.text if hasattr(resp, "text") else str(resp)
 
         answer = await asyncio.wait_for(
-            loop.run_in_executor(None, _call),
-            timeout=15.0
+            loop.run_in_executor(None, _vertex_call), timeout=15.0
         )
+        logger.info("vertex_flash_fast_response_ok")
         return f"<thought>{thought}</thought>\n\n{answer}"
 
-    except Exception as exc:
-        logger.warning(f"fast_response_fallback: {exc}")
-        # Persona-based fallback — çalışır, hızlıdır, karakterlidir
-        brief_lower = brief.lower()
-        if any(w in brief_lower for w in ["merhaba", "selam", "hello", "hi"]):
-            return (
-                f"<thought>{thought}</thought>\n\n"
-                "Merhaba Mösyö. Elephant burada — 12 ajanlı konseyiniz hazır.\n\n"
-                "Size şunlarda yardımcı olabilirim:\n"
-                "• **Araştırma** — web'i tarayıp sentezlemek\n"
-                "• **İçerik** — LinkedIn, strateji belgesi, rapor\n"
-                "• **Analiz** — görüntü, veri, fikir\n"
-                "• **Hafıza** — önceki konuşmalar ve kararlar\n\n"
-                "Bir görev verin, Konsey harekete geçsin."
-            )
+    except Exception as vertex_err:
+        logger.error(f"both_llms_failed: dolphin+vertex. {vertex_err}")
+        # Son çare: en azından karakterli bir şey söyle
         return (
-            f"<thought>{thought}</thought>\n\n"
-            f"Mösyö, mesajınızı aldım: **\"{brief}\"**\n\n"
-            "Sistemi analiz ediyorum. Vertex AI kimlik bilgileri bu ortamda eksik görünüyor. "
-            "Gerçek LLM bağlantısı için `GOOGLE_APPLICATION_CREDENTIALS` ortam değişkenini ayarlayın.\n\n"
-            "Şu an için: Bu mesajı aldım ve kaydettim."
+            f"<thought>{thought} — Hem Dolphin hem Vertex erişilemiyor.</thought>\n\n"
+            f"Mösyö, saat {saat}. Şu an her iki beyin de meşgul veya erişilemiyor.\n"
+            f"Dolphin için: Ollama'nın çalıştığını kontrol edin (`ollama list`).\n"
+            f"Vertex için: `GOOGLE_APPLICATION_CREDENTIALS` gerekli.\n\n"
+            f"Konsey size en kısa sürede geri dönecek."
         )
 
 
