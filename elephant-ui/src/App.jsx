@@ -59,7 +59,16 @@ export default function App() {
           }, 2000);
         }
 
-        const msgType = data.event_type;
+        if (msgType === 'speak.request') {
+          const text = data.payload?.text;
+          if (text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            // Detect if contains Turkish characters to pick a better voice
+            utterance.lang = /[ığüşöçİĞÜŞÖÇ]/.test(text) ? 'tr-TR' : 'en-US';
+            window.speechSynthesis.speak(utterance);
+          }
+        }
+
         if (msgType !== 'agent_heartbeat') { // filter spam
           let messageTxt = JSON.stringify(data.payload);
           if (msgType === 'task.created') messageTxt = `Directive established: ${data.payload.title}`;

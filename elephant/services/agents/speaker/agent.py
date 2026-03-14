@@ -21,8 +21,18 @@ class SpeakerAgent(BaseAgent):
         logger.info(f"Speaker handling message: {msg.event_type}")
         if msg.event_type == EventType.task_completed:
             task = msg.payload
-            logger.info("Speaker converts text back to audio (Mock TTS)")
-            logger.info(f"Speaker Output Audio: Halledildi Mösyö. {task.get('title')}")
+            outputs = task.get("outputs", [])
+            output_text = outputs[0] if outputs else task.get("title", "Görev tamamlandı.")
+            
+            # Publish a speak request for the UI
+            speak_msg = BusMessage(
+                event_type=EventType.speak_request,
+                sender_agent="speaker",
+                payload={"text": f"Halledildi Mösyö. {output_text[:200]}"},
+                task_id=msg.task_id
+            )
+            await self.bus.publish(speak_msg)
+            logger.info("Speaker published speak_request")
 
 
 if __name__ == "__main__":

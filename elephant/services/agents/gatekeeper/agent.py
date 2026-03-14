@@ -4,6 +4,7 @@ import logging
 from services.agents.base.agent import BaseAgent
 from shared.schemas.message import BusMessage, EventType
 from shared.config.base import get_settings
+from shared.config.persona import ELEPHANT_PERSONA
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class GatekeeperAgent(BaseAgent):
                 task["requires_cloud"] = False
                 task["is_sensitive"] = True
             else:
-                logger.info(f"Task '{title}' flagged as CLEAN. Routing to Planner Agent (Cloud).")
+                logger.info(f"Task '{title}' flagged as CLEAN. Bilge Fil planlayıcıyı göreve çağırıyor.")
                 task["requires_cloud"] = True
                 task["is_sensitive"] = False
 

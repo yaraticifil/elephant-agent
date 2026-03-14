@@ -14,6 +14,8 @@ from services.agents.base.agent import BaseAgent
 from shared.schemas.message import BusMessage, EventType
 from shared.schemas.task import TaskCreate, TaskBrief, TaskType, TaskMode, TaskOrigin, TaskRiskLevel
 from shared.config.base import get_settings
+from shared.config.persona import ELEPHANT_PERSONA
+from shared.config.llm import PLANNER_MODEL, call_vertex_model
 from shared.messaging.events import build_agent_task_request
 
 settings = get_settings()
@@ -35,9 +37,9 @@ def do_vertex_grounded_search(query: str) -> str:
             logger.warning(f"Vertex AI not initialized properly, falling back. Error: {e}")
             return f"[Simulated Vertex AI Grounded Result for '{query}' - Credentials missing]"
 
-        # Use Gemini 1.5 Pro with Google Search Grounding Tool
+        # Use Gemini 1.5 Pro with Google Search Grounding Tool (Gemini required for Search tools)
         tool = Tool.from_google_search_retrieval(google_search_retrieval={})
-        model = GenerativeModel("gemini-1.5-pro-preview-0409", tools=[tool])
+        model = GenerativeModel("gemini-1.5-pro-002", tools=[tool])
 
         prompt = f"Perform a comprehensive Google search and analysis for the following query: {query}"
         response = model.generate_content(prompt)
@@ -178,6 +180,14 @@ class PlannerAgent(BaseAgent):
         logger.info("planner_received_goal", extra={
             "task_id": task_id, "title": title, "task_type": task_type_raw
         })
+
+        # --- THINKING PHASE ---
+        logger.info("planner_thinking_started", extra={"task_id": task_id})
+        # In a real scenario, we'd call LLM here to get the <thought> block. 
+        # For now, we simulate the persona's strategic reasoning.
+        thought = f"<thought>Mösyö'nün direktifi alındı: '{title}'. Konseyin stratejik hedeflerine uygun olarak görev dağılımı planlanıyor. Fil her zaman hazırdır.</thought>"
+        logger.info(f"Elephant Thought: {thought}")
+        # ----------------------
 
         # 1. Query memory (stub: returns empty context in Stage 2)
         memory_context = await self._retrieve_memory(title)

@@ -11,6 +11,8 @@ import httpx
 from services.agents.base.agent import BaseAgent
 from shared.schemas.message import BusMessage, EventType
 from shared.config.base import get_settings
+from shared.config.persona import ELEPHANT_PERSONA
+from shared.config.llm import CREATOR_MODEL, call_vertex_model
 from shared.messaging.events import build_agent_task_request
 
 settings = get_settings()
@@ -54,18 +56,22 @@ class CreatorAgent(BaseAgent):
 
     async def _draft_content(self, topic: str, research: str) -> str:
         """
-        Stage 2 stub: returns a template draft.
-        Stage 5: Calls Model Router → Claude-3.5-Sonnet with voice profile + research context.
+        ELEPHANT 2.0: Calls Claude 3.5 Sonnet (claude-sonnet-4.6) on Vertex AI.
+        Model: CREATOR_MODEL from shared/config/llm.py
         """
-        await asyncio.sleep(1)
-        return (
-            f"# Draft: {topic}\n\n"
-            f"[Stage 2 Stub] Model Router not yet connected. "
-            f"Real content generation via Claude-3.5-Sonnet in Stage 5.\n\n"
-            f"**Topic:** {topic}\n\n"
-            f"**Research context provided:** {'Yes' if research else 'No'}\n\n"
-            f"---\n*Voice confidence: N/A (stub)*"
+        prompt = (
+            f"{ELEPHANT_PERSONA}\n\n"
+            f"Task: Draft high-quality content about '{topic}'.\n"
+            f"Research context:\n{research}\n\n"
+            f"Deliver the response as Elephant — wise, bilingual (Turkish/English), and strategic."
         )
+        try:
+            logger.info("creator_calling_claude_vertex", extra={"model": CREATOR_MODEL, "topic": topic})
+            result = await call_vertex_model(CREATOR_MODEL, prompt, system_prompt=ELEPHANT_PERSONA)
+            return result
+        except Exception as exc:
+            logger.error("creator_llm_error", extra={"model": CREATOR_MODEL, "error": str(exc)})
+            return f"Bilge Fil geçici olarak sessiz Mösyö. ({str(exc)[:120]}) Yedek protokol devrede."
 
     async def _dispatch_to_critic(
         self, task_id: str, draft: str, topic: str,

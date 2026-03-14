@@ -28,6 +28,7 @@ class EventType(str, Enum):
     memory_write_request = "memory.write_request"
     memory_read_request = "memory.read_request"
     memory_read_result = "memory.read_result"
+    speak_request = "speak.request"
 
 
 class AlertSeverity(str, Enum):

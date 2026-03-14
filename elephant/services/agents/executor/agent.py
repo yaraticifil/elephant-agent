@@ -94,7 +94,7 @@ class ExecutorAgent(BaseAgent):
         Credentials read from Vault at execution time ONLY.
         """
         await asyncio.sleep(0.3)
-        return f"[Stage 2 Stub] Execution blocked. Task {task_id} awaiting user approval."
+        return f"İnfaz durduruldu Mösyö. {task_id} numaralı görev için mühür bekleniyor. Tedbir her şeydir."
 
     async def _set_awaiting_approval(self, task_id: str) -> None:
         async with httpx.AsyncClient(timeout=15) as client:

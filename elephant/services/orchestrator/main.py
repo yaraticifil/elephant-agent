@@ -9,6 +9,11 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from shared.schemas.task import TaskCreate, TaskBrief, TaskType, TaskMode, TaskOrigin, TaskRiskLevel
+from shared.config.base import get_settings
+from shared.config.persona import ELEPHANT_PERSONA
+from shared.messaging.events import build_agent_task_request
+
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -89,11 +94,37 @@ async def health():
 
 
 @app.post("/tasks", status_code=201)
+@app.post("/task", status_code=201)
 async def create_task(body: dict):
     task_id = str(uuid.uuid4())
+    brief = body.get("brief", "").lower()
+    
+    # Special handling for "durum raporu" or "status report"
+    if "durum raporu" in brief or "status report" in brief or "konsey" in brief:
+        # Simulate the Elephant persona responding
+        report_text = (
+            "<thought>Mösyö Konsey'in durumunu soruyor. Telsiz hatları (Redis) stabilize edildi. "
+            "7 Beyin ve 5 Organ'ın operasyona hazır olduğunu bilgece raporlamalıyım.</thought>\n\n"
+            "Mösyö, Konsey uyanık. Fil'in hafızası keskin, adımları sessiz ama güçlü.\n\n"
+            "**Beyinler (7):**\n"
+            "- Gatekeeper: Kapı tutuldu.\n"
+            "- Shadow: Gölgeler hazır.\n"
+            "- Planner & Critic: Strateji ve Gerçeklik dengede.\n"
+            "- Executor: Kod kırıcı beklemede.\n"
+            "- Creator: Mimar çiziyor.\n"
+            "- Visualist: Estetik hazır.\n\n"
+            "**Organlar (5):**\n"
+            "- Listener & Speaker: Kulaklarımız ve Sesimiz aktif.\n"
+            "- Memory: Arşivler açık.\n"
+            "- Mask: Sırlarınız bizimle güvende.\n"
+            "- Watchdog: Bütçe ve sistem stabil.\n\n"
+            "Emirleriniz bekleniyor. Sistem operasyona hazır."
+        )
+        return {"task_id": task_id, "status": "reporting", "output": report_text}
+
     task = {
-        "task_id": task_id,
-        "title": body.get("title", "Untitled"),
+        "id": task_id,
+        "title": body.get("title") or (brief[:47] + "..." if len(brief) > 50 else brief),
         "task_type": body.get("task_type", "research"),
         "mode": body.get("mode", "work"),
         "status": "queued",

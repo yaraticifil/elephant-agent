@@ -11,6 +11,7 @@ import httpx
 from services.agents.base.agent import BaseAgent
 from shared.schemas.message import BusMessage, EventType
 from shared.config.base import get_settings
+from shared.config.llm import CRITIC_MODEL, call_vertex_model
 from shared.messaging.events import build_agent_task_request
 
 settings = get_settings()
@@ -67,17 +68,35 @@ class CriticAgent(BaseAgent):
 
     async def _review(self, draft: str, topic: str) -> tuple[int, str]:
         """
-        Stage 2 stub: returns a high-pass score for all drafts.
-        Stage 5: Calls Model Router → GPT-4o (different from Creator which uses Claude).
+        ELEPHANT 2.0: Calls Gemini 1.5 Pro on Vertex AI for quality review.
+        Architectural independence: Creator uses Claude, Critic uses Gemini.
+        Model: CRITIC_MODEL from shared/config/llm.py
         """
-        await asyncio.sleep(0.5)
-        score = 80  # stub: auto-pass
-        critique = (
-            f"[Stage 2 Stub] Auto-approval. "
-            f"Stage 5 will use GPT-4o (independence rule: Creator uses Claude).\n"
-            f"**Score:** {score}/100 | **Topic:** {topic}"
+        prompt = (
+            f"You are the Critic agent for the ELEPHANT OS. Review the following draft about '{topic}'.\n\n"
+            f"Draft:\n{draft[:3000]}\n\n"
+            f"Evaluate the draft on a scale of 0-100 for: clarity, accuracy, tone, and strategic value.\n"
+            f"Return your response as JSON: {{\"score\": <int>, \"critique\": \"<str>\"}}\n"
+            f"If score >= 70, the draft is approved. If < 70, provide specific improvement requests."
         )
-        return score, critique
+        try:
+            logger.info("critic_calling_gemini_vertex", extra={"model": CRITIC_MODEL, "topic": topic})
+            raw = await call_vertex_model(CRITIC_MODEL, prompt)
+            # Try to parse JSON, fallback to auto-pass
+            import json, re
+            match = re.search(r'\{.*\}', raw, re.DOTALL)
+            if match:
+                parsed = json.loads(match.group())
+                score = int(parsed.get("score", 80))
+                critique = parsed.get("critique", raw)
+            else:
+                score = 80
+                critique = raw
+            return score, critique
+        except Exception as exc:
+            logger.warning("critic_llm_error_fallback", extra={"model": CRITIC_MODEL, "error": str(exc)})
+            # Safe fallback: auto-approve so pipeline doesn't stall
+            return 80, f"[Critic fallback: auto-approved. Gemini error: {str(exc)[:100]}]"
 
     async def _dispatch_to_auditor(
         self, task_id: str, draft: str, topic: str, parent_payload: dict

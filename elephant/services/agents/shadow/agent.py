@@ -25,7 +25,7 @@ class ShadowAgent(BaseAgent):
 
             try:
                 # Mock Shadow Action — local processing
-                result = f"Processed locally by Shadow Agent: {title}"
+                result = f"Gölge ajan işini sessizce bitirdi Mösyö: {title}. Fil her şeyi görür."
 
                 # Report completion to Orchestrator HTTP API
                 await self._complete_task(task_id, outputs=[result])
