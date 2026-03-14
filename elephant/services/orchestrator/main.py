@@ -114,23 +114,59 @@ async def _call_dolphin(prompt: str, system: str, timeout: float = 20.0) -> str:
         return r.json().get("response", "").strip()
 
 
-async def _elephant_fast_response(brief: str, task_id: str) -> str:
+async def _elephant_fast_response(brief: str, task_id: str, image_b64: str = None) -> str:
     """
-    1. Dolphin (local, her zaman hazır, karakterli)
-    2. Gemini Flash (Vertex AI, internet gerekir)
-    Robot cevap yok.
+    1. Görüntü varsa -> Gemini Flash Vision (Vertex AI)
+    2. Görüntü yoksa -> Dolphin (local)
+    3. Dolphin düşerse -> Gemini Flash (Vertex AI)
     """
     from datetime import datetime
+    import asyncio
     saat = datetime.now().strftime("%H:%M")
     thought = f"Saat {saat}. Mösyö: '{brief[:70]}' — değerlendiriyorum."
     system = ELEPHANT_CHARACTER.format(saat=saat)
+
+    # ── GÖRÜNTÜ VARSA (VISION) ──────────────────────────────────────────
+    if image_b64:
+        thought = f"Saat {saat}. Görüntü analizi istendi. Vertex AI (Gemini Vision) devrede."
+        try:
+            import vertexai
+            from vertexai.generative_models import GenerativeModel, Part
+            import base64
+            
+            mime_type = "image/jpeg"
+            b64_data = image_b64
+            if "," in image_b64:
+                header, b64_data = image_b64.split(",", 1)
+                import re
+                m = re.match(r"data:(.*?);base64", header)
+                if m:
+                    mime_type = m.group(1)
+            
+            loop = asyncio.get_running_loop()
+            def _vertex_vision_call():
+                vertexai.init()
+                model = GenerativeModel("gemini-1.5-flash-002", system_instruction=system)
+                image_part = Part.from_data(mime_type=mime_type, data=base64.b64decode(b64_data))
+                prompt_text = brief if brief else "Bu görüntüyü detaylı analiz et."
+                resp = model.generate_content([image_part, prompt_text])
+                return resp.text if hasattr(resp, "text") else str(resp)
+
+            answer = await asyncio.wait_for(
+                loop.run_in_executor(None, _vertex_vision_call), timeout=25.0
+            )
+            logger.info("vertex_vision_ok")
+            return f"<thought>{thought}</thought>\n\n{answer}"
+        except Exception as e:
+            logger.error(f"vision_failed: {e}")
+            return f"<thought>{thought} — Vision başarısız oldu.</thought>\n\nMösyö, fotoğraf analiz edilemedi. Vertex anahtarı yüklenmemiş olabilir. Hata: {e}"
 
     # ── ÖNCE DOLPHIN ─────────────────────────────────────────────────────
     try:
         answer = await _call_dolphin(brief, system, timeout=20.0)
         if answer:
             logger.info("dolphin_fast_response_ok", extra={"chars": len(answer)})
-            return f"<thought>{thought}</thought>\n\n{answer}"
+            return f"<thought>{thought} (DOLPHIN)</thought>\n\n{answer}"
     except Exception as dolphin_err:
         logger.warning(f"dolphin_unavailable: {dolphin_err} — Vertex AI deneniyor")
 
@@ -150,7 +186,7 @@ async def _elephant_fast_response(brief: str, task_id: str) -> str:
             loop.run_in_executor(None, _vertex_call), timeout=15.0
         )
         logger.info("vertex_flash_fast_response_ok")
-        return f"<thought>{thought}</thought>\n\n{answer}"
+        return f"<thought>{thought} (VERTEX)</thought>\n\n{answer}"
 
     except Exception as vertex_err:
         logger.error(f"both_llms_failed: dolphin+vertex. {vertex_err}")
@@ -175,6 +211,7 @@ async def health():
 async def create_task(body: dict):
     task_id = str(uuid.uuid4())
     brief = body.get("brief", "")
+    image_b64 = body.get("image")
     brief_lower = brief.lower().strip()
 
     # ── FAST PATH: Conversational / simple questions ───────────────────────
@@ -185,10 +222,10 @@ async def create_task(body: dict):
         "nasılsın", "durum", "konsey", "rapor", "durum raporu", "status",
         "kimsin", "who are you", "ne yapabilirsin", "neye yararsın",
     ]
-    is_fast = any(t in brief_lower for t in FAST_TRIGGERS) or len(brief_lower) < 80
+    is_fast = image_b64 or any(t in brief_lower for t in FAST_TRIGGERS) or len(brief_lower) < 80
 
     if is_fast:
-        response_text = await _elephant_fast_response(brief, task_id)
+        response_text = await _elephant_fast_response(brief, task_id, image_b64)
         return {"task_id": task_id, "status": "completed", "output": response_text}
 
     # ── HEAVY PATH: Research/strategy/content tasks → full pipeline ────────
