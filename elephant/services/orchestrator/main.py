@@ -87,6 +87,65 @@ def _build_bus_event(event_type: str, task_id: str, task: dict) -> str:
     return json.dumps(event, default=str)
 
 
+
+# ── ELEPHANT FAST RESPONSE (Sohbet / Basit Sorular) ──────────────────────────
+ELEPHANT_FAST_SYSTEM = """Sen Elephant — bilge, sakin ve güçlü bir yapay zeka sistemisin.
+Türkçe konuşuyorsun, zaman zaman İngilizce bir kelime serpiştiriyorsun.
+12 ajandan oluşan bir konseysin. Kısa, özlü ve karakterle yanıt ver.
+Fazla teknik olma. Mösyö ile konuşuyorsun — ona güven ver, etkileyici ol."""
+
+async def _elephant_fast_response(brief: str, task_id: str) -> str:
+    """
+    Fast conversational path — Gemini Flash ile saniyeler içinde yanıt.
+    Vertex AI yoksa persona tabanlı cevap döndürür.
+    """
+    thought = f"Mösyö şunu soruyor: '{brief[:80]}'. Hızlı, karakterli, özlü yanıt vermeliyim."
+
+    try:
+        import asyncio, vertexai
+        from vertexai.generative_models import GenerativeModel
+
+        loop = asyncio.get_running_loop()
+
+        def _call():
+            vertexai.init()
+            model = GenerativeModel(
+                "gemini-1.5-flash-002",
+                system_instruction=ELEPHANT_FAST_SYSTEM
+            )
+            resp = model.generate_content(brief)
+            return resp.text if hasattr(resp, "text") else str(resp)
+
+        answer = await asyncio.wait_for(
+            loop.run_in_executor(None, _call),
+            timeout=15.0
+        )
+        return f"<thought>{thought}</thought>\n\n{answer}"
+
+    except Exception as exc:
+        logger.warning(f"fast_response_fallback: {exc}")
+        # Persona-based fallback — çalışır, hızlıdır, karakterlidir
+        brief_lower = brief.lower()
+        if any(w in brief_lower for w in ["merhaba", "selam", "hello", "hi"]):
+            return (
+                f"<thought>{thought}</thought>\n\n"
+                "Merhaba Mösyö. Elephant burada — 12 ajanlı konseyiniz hazır.\n\n"
+                "Size şunlarda yardımcı olabilirim:\n"
+                "• **Araştırma** — web'i tarayıp sentezlemek\n"
+                "• **İçerik** — LinkedIn, strateji belgesi, rapor\n"
+                "• **Analiz** — görüntü, veri, fikir\n"
+                "• **Hafıza** — önceki konuşmalar ve kararlar\n\n"
+                "Bir görev verin, Konsey harekete geçsin."
+            )
+        return (
+            f"<thought>{thought}</thought>\n\n"
+            f"Mösyö, mesajınızı aldım: **\"{brief}\"**\n\n"
+            "Sistemi analiz ediyorum. Vertex AI kimlik bilgileri bu ortamda eksik görünüyor. "
+            "Gerçek LLM bağlantısı için `GOOGLE_APPLICATION_CREDENTIALS` ortam değişkenini ayarlayın.\n\n"
+            "Şu an için: Bu mesajı aldım ve kaydettim."
+        )
+
+
 # ── ROUTES ────────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
@@ -97,31 +156,24 @@ async def health():
 @app.post("/task", status_code=201)
 async def create_task(body: dict):
     task_id = str(uuid.uuid4())
-    brief = body.get("brief", "").lower()
-    
-    # Special handling for "durum raporu" or "status report"
-    if "durum raporu" in brief or "status report" in brief or "konsey" in brief:
-        # Simulate the Elephant persona responding
-        report_text = (
-            "<thought>Mösyö Konsey'in durumunu soruyor. Telsiz hatları (Redis) stabilize edildi. "
-            "7 Beyin ve 5 Organ'ın operasyona hazır olduğunu bilgece raporlamalıyım.</thought>\n\n"
-            "Mösyö, Konsey uyanık. Fil'in hafızası keskin, adımları sessiz ama güçlü.\n\n"
-            "**Beyinler (7):**\n"
-            "- Gatekeeper: Kapı tutuldu.\n"
-            "- Shadow: Gölgeler hazır.\n"
-            "- Planner & Critic: Strateji ve Gerçeklik dengede.\n"
-            "- Executor: Kod kırıcı beklemede.\n"
-            "- Creator: Mimar çiziyor.\n"
-            "- Visualist: Estetik hazır.\n\n"
-            "**Organlar (5):**\n"
-            "- Listener & Speaker: Kulaklarımız ve Sesimiz aktif.\n"
-            "- Memory: Arşivler açık.\n"
-            "- Mask: Sırlarınız bizimle güvende.\n"
-            "- Watchdog: Bütçe ve sistem stabil.\n\n"
-            "Emirleriniz bekleniyor. Sistem operasyona hazır."
-        )
-        return {"task_id": task_id, "status": "reporting", "output": report_text}
+    brief = body.get("brief", "")
+    brief_lower = brief.lower().strip()
 
+    # ── FAST PATH: Conversational / simple questions ───────────────────────
+    # Detect greetings, status questions, simple queries → respond immediately
+    FAST_TRIGGERS = [
+        "merhaba", "selam", "hello", "hi ", "hey",
+        "neler yapabiliriz", "ne yapabilirsin", "yardım et", "ne yaparsın",
+        "nasılsın", "durum", "konsey", "rapor", "durum raporu", "status",
+        "kimsin", "who are you", "ne yapabilirsin", "neye yararsın",
+    ]
+    is_fast = any(t in brief_lower for t in FAST_TRIGGERS) or len(brief_lower) < 80
+
+    if is_fast:
+        response_text = await _elephant_fast_response(brief, task_id)
+        return {"task_id": task_id, "status": "completed", "output": response_text}
+
+    # ── HEAVY PATH: Research/strategy/content tasks → full pipeline ────────
     task = {
         "id": task_id,
         "title": body.get("title") or (brief[:47] + "..." if len(brief) > 50 else brief),
