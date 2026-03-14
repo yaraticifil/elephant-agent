@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Studio — Elephant 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d0f; --surface: #131316; --border: #1e1e24; --muted: #3a3a45;
+      --dim: #6b6b7a; --text: #e0e0e8; --accent: #5b8ff9; --whisper: #1a1a22;
+      --green: #3dcf8e; --amber: #f5a623; --red: #ff5f5f; --claude: #cc785c; --gemini: #5b8ff9;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; overflow: hidden; }
+
+    /* ── LAYOUT ── */
+    .app { display: grid; grid-template-columns: 200px 1fr 280px; height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; overflow-y: auto; }
+    .logo { padding: 0 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .logo-icon { font-size: 20px; }
+    .logo-text { font-size: 12px; font-weight: 500; }
+    .logo-sub { font-size: 9px; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
+    .nav { padding: 12px 8px; flex: 1; }
+    .nav-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); padding: 0 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 5px; cursor: pointer; color: var(--dim); font-size: 12px; transition: all 0.15s; margin-bottom: 2px; }
+    .nav-item:hover { background: var(--whisper); color: var(--text); }
+    .nav-item.active { color: var(--accent); background: var(--whisper); }
+
+    /* Agent status */
+    .agents-section { padding: 12px 8px 0; border-top: 1px solid var(--border); }
+    .agent-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; font-size: 11px; color: var(--dim); border-radius: 4px; cursor: default; }
+    .agent-row.active-agent { background: var(--whisper); color: var(--text); animation: pulse-row 1.5s infinite; }
+    @keyframes pulse-row { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    .agent-left { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .dot.up { background: var(--green); box-shadow: 0 0 5px var(--green); }
+    .dot.cloud { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+    .dot.local { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+    .dot.thinking { background: var(--amber); animation: pulse-dot 0.8s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }
+    .model-tag { font-size: 9px; color: var(--muted); }
+
+    /* ── MAIN ── */
+    .main { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
+    .topbar-title { font-size: 12px; color: var(--dim); }
+    .topbar-actions { display: flex; gap: 6px; align-items: center; }
+    .topbar-btn { background: none; border: 1px solid var(--border); color: var(--dim); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .topbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .topbar-btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--muted); margin-right: 5px; }
+    .status-dot.ok { background: var(--green); box-shadow: 0 0 5px var(--green); }
+    .status-dot.err { background: var(--red); }
+
+    /* ── WORKSPACE (responses) ── */
+    .workspace { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    /* Drop zone */
+    .drop-zone { border: 1.5px dashed var(--border); border-radius: 8px; padding: 14px; text-align: center; font-size: 11px; color: var(--muted); cursor: pointer; margin-bottom: 16px; transition: all 0.2s; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); color: var(--accent); background: rgba(91,143,249,0.05); }
+    .drop-zone img { max-height: 120px; border-radius: 6px; margin-top: 8px; display: block; margin: 8px auto 0; }
+
+    /* Response cards */
+    .response-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; animation: fadeUp 0.25s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+    .card-meta { font-size: 10px; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .card-agent { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 10px; }
+    .card-agent.claude { background: rgba(204,120,92,0.15); color: var(--claude); }
+    .card-agent.gemini { background: rgba(91,143,249,0.15); color: var(--gemini); }
+    .card-agent.local { background: rgba(245,166,35,0.15); color: var(--amber); }
+    .card-agent.sys { background: rgba(61,207,142,0.12); color: var(--green); }
+    .thought-block { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--dim); border-left: 2px solid var(--muted); padding-left: 10px; margin-bottom: 10px; line-height: 1.7; font-style: italic; }
+    .thought-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+    .response-text { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+    .response-text strong { color: var(--accent); font-weight: 500; }
+
+    /* Thinking card */
+    .thinking-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; margin-bottom: 12px; }
+    .thinking-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
+    .thinking-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: bounce 1.2s infinite; }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-5px);opacity:1} }
+    .thinking-timer { font-size: 10px; color: var(--dim); margin-top: 6px; }
+
+    /* ── COMMAND BAR ── */
+    .command-area { border-top: 1px solid var(--border); padding: 12px 20px; background: var(--surface); flex-shrink: 0; }
+    .cmd-row { display: flex; gap: 8px; }
+    .cmd-wrap { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 9px 14px; transition: border-color 0.15s; }
+    .cmd-wrap:focus-within { border-color: var(--accent); }
+    .cmd-prompt { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .cmd-input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 13px; }
+    .cmd-input::placeholder { color: var(--muted); }
+    .cmd-send { background: var(--accent); border: none; color: #fff; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; transition: opacity 0.15s; white-space: nowrap; }
+    .cmd-send:hover { opacity: 0.85; }
+    .cmd-send:disabled { opacity: 0.4; cursor: not-allowed; }
+    .force-btn { background: rgba(255,95,95,0.1); border: 1px solid rgba(255,95,95,0.3); color: var(--red); padding: 9px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+    .force-btn:hover { background: rgba(255,95,95,0.2); }
+
+    /* ── THOUGHT STREAM (right panel) ── */
+    .thought-panel { background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+    .panel-header .live-tag { font-size: 9px; background: rgba(61,207,142,0.1); color: var(--green); padding: 2px 6px; border-radius: 8px; }
+    .thought-stream { flex: 1; overflow-y: auto; padding: 12px; }
+    .thought-entry { margin-bottom: 12px; padding: 10px 12px; background: var(--bg); border-radius: 6px; border-left: 2px solid var(--border); }
+    .thought-entry.claude { border-left-color: var(--claude); }
+    .thought-entry.gemini { border-left-color: var(--gemini); }
+    .thought-entry.gatekeeper { border-left-color: var(--green); }
+    .thought-entry.local { border-left-color: var(--amber); }
+    .thought-entry-agent { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; font-weight: 500; }
+    .thought-entry.claude .thought-entry-agent { color: var(--claude); }
+    .thought-entry.gemini .thought-entry-agent { color: var(--gemini); }
+    .thought-entry.local .thought-entry-agent { color: var(--amber); }
+    .thought-entry-text { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--dim); line-height: 1.6; }
+    .thought-entry-time { font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">🐘</span>
+      <div><div class="logo-text">The Studio</div><div class="logo-sub">Elephant 2.0</div></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Alan</div>
+      <div class="nav-item active"><span>✦</span>Atölye</div>
+      <div class="nav-item"><span>◈</span>Araştırma</div>
+      <div class="nav-item"><span>◇</span>Strateji</div>
+      <div class="nav-item"><span>○</span>Hafıza</div>
+    </nav>
+    <div class="agents-section">
+      <div class="nav-label">Beyinler</div>
+      <div class="agent-row" id="ar-planner">
+        <span class="agent-left"><span class="dot cloud" id="d-planner"></span>Planner</span>
+        <span class="model-tag">claude</span>
+      </div>
+      <div class="agent-row" id="ar-creator">
+        <span class="agent-left"><span class="dot cloud" id="d-creator"></span>Creator</span>
+        <span class="model-tag">claude</span>
+      </div>
+      <div class="agent-row" id="ar-critic">
+        <span class="agent-left"><span class="dot cloud" id="d-critic"></span>Critic</span>
+        <span class="model-tag">gemini</span>
+      </div>
+      <div class="nav-label" style="margin-top:10px">Organlar</div>
+      <div class="agent-row" id="ar-gatekeeper">
+        <span class="agent-left"><span class="dot up" id="d-gatekeeper"></span>Gatekeeper</span>
+        <span class="model-tag">local</span>
+      </div>
+      <div class="agent-row" id="ar-shadow">
+        <span class="agent-left"><span class="dot local" id="d-shadow"></span>Shadow</span>
+        <span class="model-tag">dolphin</span>
+      </div>
+      <div class="agent-row" id="ar-executor">
+        <span class="agent-left"><span class="dot local" id="d-executor"></span>Executor</span>
+        <span class="model-tag">deepseek</span>
+      </div>
+      <div class="agent-row" id="ar-watchdog">
+        <span class="agent-left"><span class="dot up" id="d-watchdog"></span>Watchdog</span>
+        <span class="model-tag">sys</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="panel-title">Atölye</span>
+      <div class="topbar-actions">
+        <span class="status-dot" id="health-dot"></span>
+        <span id="health-label" style="font-size:11px;color:var(--dim)">bağlanıyor...</span>
+        <button class="topbar-btn" onclick="clearAll()">Temizle</button>
+      </div>
+    </div>
+
+    <!-- Image Drop Zone -->
+    <div style="padding: 10px 24px 0; flex-shrink: 0;">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <span id="drop-label">📸 Görüntü sürükle veya tıkla (Gemini analiz eder)</span>
+        <img id="preview-img" style="display:none" />
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)" />
+    </div>
+
+    <div class="workspace" id="workspace"></div>
+
+    <div class="command-area">
+      <div class="cmd-row">
+        <div class="cmd-wrap">
+          <span class="cmd-prompt">›</span>
+          <input class="cmd-input" id="cmd-input" placeholder="Elephant'a sor..." onkeydown="onKey(event)" />
+        </div>
+        <button class="cmd-send" id="send-btn" onclick="send()">Gönder</button>
+        <button class="force-btn" id="force-btn" onclick="forceReply()" title="Ajan 5s+ bekliyorsa zorla yanıtla">⚡ Zorla</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- THOUGHT STREAM PANEL -->
+  <aside class="thought-panel">
+    <div class="panel-header">
+      <span>Düşünce Akışı</span>
+      <span class="live-tag" id="live-tag">BEKLEMEDE</span>
+    </div>
+    <div class="thought-stream" id="thought-stream">
+      <div style="font-size:11px;color:var(--muted);padding:12px;text-align:center;line-height:1.8;">
+        Ajan düşünceleri burada belirecek.<br/>Her agent'ın ne yaptığını anlık görün.
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let currentTaskId = null;
+  let thinkingTimer = null;
+  let thinkingSeconds = 0;
+  let pendingCard = null;
+  let pendingImage = null;
+
+  // ── HEALTH ──────────────────────────────────────────────────────────────
+  async function checkHealth() {
+    try {
+      const r = await fetch(API + '/health');
+      if (r.ok) {
+        document.getElementById('health-dot').className = 'status-dot ok';
+        document.getElementById('health-label').textContent = 'Sistem Sağlıklı';
+        addThought('orchestrator', 'sys', 'Health check OK. Konsey hazır.');
+      } else throw new Error();
+    } catch {
+      document.getElementById('health-dot').className = 'status-dot err';
+      document.getElementById('health-label').textContent = 'Bağlantı Hatası';
+    }
+  }
+
+  // ── THOUGHT STREAM ───────────────────────────────────────────────────────
+  function addThought(agent, type, text) {
+    const el = document.getElementById('thought-stream');
+    // Remove placeholder
+    const ph = el.querySelector('div[style]');
+    if (ph && ph.textContent.includes('belirecek')) ph.remove();
+
+    const t = new Date().toLocaleTimeString('tr', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const entry = document.createElement('div');
+    entry.className = 'thought-entry ' + type;
+    entry.innerHTML = `
+      <div class="thought-entry-agent">${agent.toUpperCase()}</div>
+      <div class="thought-entry-text">${text}</div>
+      <div class="thought-entry-time">${t}</div>
+    `;
+    el.appendChild(entry);
+    el.scrollTop = el.scrollHeight;
+
+    document.getElementById('live-tag').textContent = 'CANLI';
+    setTimeout(() => { document.getElementById('live-tag').textContent = 'BEKLEMEDE'; }, 3000);
+  }
+
+  // ── AGENT INDICATORS ─────────────────────────────────────────────────────
+  function setAgentThinking(agent, thinking) {
+    const dot = document.getElementById('d-' + agent);
+    const row = document.getElementById('ar-' + agent);
+    if (!dot) return;
+    if (thinking) {
+      dot.className = 'dot thinking';
+      row.classList.add('active-agent');
+    } else {
+      // restore original class
+      const defaults = { planner:'cloud', creator:'cloud', critic:'cloud', gatekeeper:'up', shadow:'local', executor:'local', watchdog:'up' };
+      dot.className = 'dot ' + (defaults[agent] || 'up');
+      row.classList.remove('active-agent');
+    }
+  }
+
+  // ── IMAGE HANDLING ────────────────────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+
+  function handleFileSelect(e) { const f = e.target.files[0]; if (f) loadImage(f); }
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pendingImage = ev.target.result;
+      document.getElementById('preview-img').src = pendingImage;
+      document.getElementById('preview-img').style.display = 'block';
+      document.getElementById('drop-label').textContent = '📸 ' + file.name + ' — Gönder\'e basın';
+      addThought('vision', 'gemini', `Görüntü yüklendi: ${file.name} (${Math.round(file.size/1024)}KB). Gönderin.`);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── SEND ─────────────────────────────────────────────────────────────────
+  function onKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
+  function clearAll() {
+    document.getElementById('workspace').innerHTML = '';
+    pendingImage = null;
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('drop-label').textContent = '📸 Görüntü sürükle veya tıkla (Gemini analiz eder)';
+  }
+
+  async function send() {
+    const input = document.getElementById('cmd-input');
+    let brief = input.value.trim();
+    if (!brief && !pendingImage) return;
+    if (!brief && pendingImage) brief = 'Bu görüntüyü analiz et.';
+
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+
+    // Determine which agents will be involved
+    const briefLow = brief.toLowerCase();
+    const isFast = brief.length < 80 || ['merhaba','selam','hello','nasıl','durum','kim','ne yapab'].some(t => briefLow.includes(t));
+    const agentToHighlight = isFast ? 'gatekeeper' : 'planner';
+
+    setAgentThinking(agentToHighlight, true);
+    addThought(agentToHighlight, isFast ? 'local' : 'claude', `"${brief.slice(0,60)}" alındı. Değerlendiriliyor...`);
+
+    // Create thinking card
+    const ws = document.getElementById('workspace');
+    const card = document.createElement('div');
+    card.className = 'thinking-card';
+    card.id = 'thinking-card';
+    const modelLabel = isFast ? 'Elephant' : 'Planner → Creator';
+    card.innerHTML = `
+      <div class="card-meta">
+        <span class="card-agent ${isFast ? 'sys' : 'claude'}">${modelLabel}</span>
+        düşünüyor<div class="thinking-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="thinking-timer" id="thinking-timer">0s</div>
+    `;
+    ws.appendChild(card);
+    ws.scrollTop = ws.scrollHeight;
+    pendingCard = card;
+
+    // Start timer + loop breaker
+    thinkingSeconds = 0;
+    thinkingTimer = setInterval(() => {
+      thinkingSeconds++;
+      const timerEl = document.getElementById('thinking-timer');
+      if (timerEl) timerEl.textContent = thinkingSeconds + 's';
+      if (thinkingSeconds === 5) {
+        addThought('critic', 'gemini', `⚠️ ${agentToHighlight} 5s+ bekledi. Devreye giriyorum...`);
+        setAgentThinking('critic', true);
+      }
+      if (thinkingSeconds === 15) {
+        addThought('critic', 'gemini', '⚡ Zorla yanıt tetikleniyor...');
+        forceReply();
+      }
+    }, 1000);
+
+    // API call
+    const body = { mode: 'work', brief, origin: 'studio' };
+    if (pendingImage) { body.image = pendingImage; body.brief = brief; }
+
+    try {
+      const res = await fetch(API + '/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      currentTaskId = data.task_id;
+      const output = data.output;
+
+      if (output) {
+        renderResponse(output, isFast ? 'gatekeeper' : 'planner', isFast ? 'sys' : 'claude');
+        setAgentThinking(agentToHighlight, false);
+        setAgentThinking('critic', false);
+      } else {
+        // Poll
+        pollFor(currentTaskId, agentToHighlight, isFast);
+      }
+    } catch (e) {
+      finishCard(null, `Bağlantı hatası: ${e.message}`, 'orchestrator', 'sys');
+      setAgentThinking(agentToHighlight, false);
+    }
+
+    pendingImage = null;
+  }
+
+  async function pollFor(taskId, agent, isFast) {
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 25) { clearInterval(iv); forceReply(); return; }
+      try {
+        const r = await fetch(`${API}/tasks/${taskId}`);
+        const d = await r.json();
+        if (d.status === 'completed' || d.status === 'reporting') {
+          clearInterval(iv);
+          const out = (d.outputs||[])[0] || d.output || JSON.stringify(d);
+          renderResponse(out, agent, isFast ? 'sys' : 'claude');
+          setAgentThinking(agent, false);
+          setAgentThinking('critic', false);
+        } else if (d.status === 'failed') {
+          clearInterval(iv);
+          finishCard(null, `Görev başarısız: ${d.error||''}`, agent, 'sys');
+        }
+      } catch {}
+    }, 2000);
+  }
+
+  function renderResponse(text, agent, type) {
+    clearTimers();
+    document.getElementById('send-btn').disabled = false;
+    if (pendingCard) { pendingCard.remove(); pendingCard = null; }
+
+    const thoughtMatch = text.match(/<thought>([\s\S]*?)<\/thought>/i);
+    let mainText = text.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
+    // Bold markdown
+    mainText = mainText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Bullets
+    mainText = mainText.replace(/^• /gm, '• ');
+
+    let thoughtHtml = '';
+    if (thoughtMatch) {
+      const thought = thoughtMatch[1].trim();
+      thoughtHtml = `<div class="thought-block"><div class="thought-label">💭 Düşünce Akışı</div>${thought}</div>`;
+      addThought(agent, type, thought);
+    }
+
+    const card = document.createElement('div');
+    card.className = 'response-card';
+    const t = new Date().toLocaleTimeString('tr',{hour:'2-digit',minute:'2-digit'});
+    card.innerHTML = `
+      <div class="card-meta">
+        <span class="card-agent ${type}">${agent.toUpperCase()}</span>
+        <span>${t}</span>
+      </div>
+      ${thoughtHtml}
+      <div class="response-text">${mainText}</div>
+    `;
+    document.getElementById('workspace').appendChild(card);
+    document.getElementById('workspace').scrollTop = 9999;
+
+    speak(mainText.replace(/<[^>]*>/g,''));
+  }
+
+  function finishCard(taskId, text, agent, type) {
+    clearTimers();
+    document.getElementById('send-btn').disabled = false;
+    renderResponse(text, agent, type);
+  }
+
+  function clearTimers() {
+    if (thinkingTimer) { clearInterval(thinkingTimer); thinkingTimer = null; }
+  }
+
+  // ── FORCE REPLY ───────────────────────────────────────────────────────────
+  function forceReply() {
+    clearTimers();
+    setAgentThinking('planner', false);
+    setAgentThinking('critic', false);
+    document.getElementById('send-btn').disabled = false;
+    if (pendingCard) { pendingCard.remove(); pendingCard = null; }
+
+    const brief = document.getElementById('cmd-input').value || '(devam eden görev)';
+    const forceText = `<thought>Critic devreye girdi — döngü kırıldı.</thought>\n\n` +
+      `Mösyö, "${brief.slice(0,50)}" için zaman aşımı tetiklendi.\n\n` +
+      `Şu anki durum: Ajan pipeline'da bekleniyor. En hızlı yanıt: sisteminizde GOOGLE_APPLICATION_CREDENTIALS ` +
+      `ayarlandığında Gemini Flash ile bu yanıt 2-3 saniyede gelecek.`;
+    renderResponse(forceText, 'critic', 'gemini');
+    addThought('critic', 'gemini', '⚡ Force-reply tetiklendi. Döngü kırıldı.');
+  }
+
+  // ── VOICE ─────────────────────────────────────────────────────────────────
+  function speak(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/\*\*/g,'').slice(0, 350);
+    const isTr = /[çğışöüÇĞİŞÖÜ]/.test(clean);
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.lang = isTr ? 'tr-TR' : 'en-US';
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+  }
+
+  // ── SSE ──────────────────────────────────────────────────────────────────
+  function connectSSE() {
+    const es = new EventSource(API + '/stream');
+    es.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        const et = msg.event_type || '';
+        const sender = msg.sender_agent || 'system';
+
+        if (et === 'speak_request' && msg.payload?.text) {
+          speak(msg.payload.text);
+          addThought('speaker', 'sys', '🔊 Sesli yanıt tetiklendi');
+        } else if (et.includes('task_created')) {
+          addThought(sender, 'local', `Görev oluşturuldu → pipeline başladı`);
+          setAgentThinking('gatekeeper', true);
+        } else if (et.includes('task_completed') || et.includes('task.completed')) {
+          setAgentThinking('planner', false); setAgentThinking('creator', false);
+          setAgentThinking('critic', false); setAgentThinking('gatekeeper', false);
+          addThought(sender, 'sys', '✓ Görev tamamlandı');
+        } else if (et) {
+          const agentMap = { planner:'claude', creator:'claude', critic:'gemini', shadow:'local', executor:'local', gatekeeper:'local', auditor:'sys' };
+          addThought(sender, agentMap[sender]||'sys', et);
+        }
+      } catch {}
+    };
+    es.onerror = () => setTimeout(connectSSE, 5000);
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────────────────
+  window.onload = () => {
+    checkHealth();
+    connectSSE();
+    addThought('studio', 'sys', 'The Studio başlatıldı. Elephant 2.0 hazır.');
+    document.getElementById('cmd-input').focus();
+  };
+</script>
+</body>
+</html>

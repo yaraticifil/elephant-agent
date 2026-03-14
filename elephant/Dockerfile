@@ -17,11 +17,14 @@ RUN pip install --no-cache-dir \
     pydantic==2.7.1 \
     pydantic-settings==2.2.1 \
     httpx==0.27.0 \
-    qdrant-client==1.9.1 \
+    langgraph>=0.3.0 \
+    langchain-core>=0.3.0 \
+    qdrant-client>=1.11.0 \
     neo4j==5.19.0 \
     duckduckgo-search==5.3.1 \
     beautifulsoup4==4.12.3 \
-    lxml==5.2.2
+    lxml==5.2.2 \
+    google-cloud-aiplatform==1.50.0
 
 COPY shared/ ./shared/
 COPY services/ ./services/
