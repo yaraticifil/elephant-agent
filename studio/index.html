@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Studio — Elephant 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0f;
+      --surface:   #131316;
+      --border:    #1e1e24;
+      --muted:     #3a3a45;
+      --dim:       #6b6b7a;
+      --text:      #e0e0e8;
+      --accent:    #5b8ff9;
+      --whisper:   #2a2a35;
+      --green:     #3dcf8e;
+      --amber:     #f5a623;
+    }
+
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      line-height: 1.6; overflow: hidden;
+    }
+
+    /* ── LAYOUT ── */
+    .app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 24px 0; overflow-y: auto;
+    }
+    .logo {
+      padding: 0 20px 28px; display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-icon { font-size: 22px; }
+    .logo-text { font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: 0.5px; }
+    .logo-sub { font-size: 10px; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
+
+    .nav { padding: 16px 12px; flex: 1; }
+    .nav-label {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); padding: 0 8px 8px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-radius: 6px; cursor: pointer; color: var(--dim); font-size: 13px;
+      transition: all 0.15s; margin-bottom: 2px; user-select: none;
+    }
+    .nav-item:hover { background: var(--whisper); color: var(--text); }
+    .nav-item.active { background: var(--whisper); color: var(--accent); }
+    .nav-item .icon { font-size: 14px; width: 18px; text-align: center; }
+
+    .agents-status { padding: 16px 12px 0; border-top: 1px solid var(--border); }
+    .agent-chip {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; margin-bottom: 4px; font-size: 11px; color: var(--dim);
+    }
+    .agent-name { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+    .dot.up { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.cloud { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .dot.local { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+    /* ── MAIN ── */
+    .main { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px; border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .topbar-title { font-size: 13px; color: var(--dim); font-weight: 400; }
+    .topbar-actions { display: flex; gap: 8px; }
+    .topbar-btn {
+      background: none; border: 1px solid var(--border); color: var(--dim);
+      padding: 5px 12px; border-radius: 5px; font-size: 11px; cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .topbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── WORKSPACE ── */
+    .workspace { flex: 1; display: grid; grid-template-rows: 1fr auto; overflow: hidden; }
+
+    .editor-area { padding: 32px 40px; overflow-y: auto; }
+    .editor-title {
+      font-size: 26px; font-weight: 300; color: var(--text);
+      border: none; background: none; outline: none; width: 100%;
+      font-family: 'Inter', sans-serif; margin-bottom: 20px;
+    }
+    .editor-title::placeholder { color: var(--muted); }
+    .editor-body {
+      font-size: 15px; color: var(--text); background: none; border: none;
+      outline: none; width: 100%; resize: none; min-height: 260px;
+      font-family: 'Inter', sans-serif; line-height: 1.8;
+    }
+    .editor-body::placeholder { color: var(--muted); }
+
+    /* ── COMMAND BAR ── */
+    .command-bar {
+      border-top: 1px solid var(--border); padding: 14px 28px;
+      background: var(--surface); display: flex; align-items: center; gap: 12px;
+    }
+    .cmd-input-wrap {
+      flex: 1; display: flex; align-items: center; gap: 10px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 16px; transition: border-color 0.15s;
+    }
+    .cmd-input-wrap:focus-within { border-color: var(--accent); }
+    .cmd-prompt { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .cmd-input {
+      flex: 1; background: none; border: none; outline: none; color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 13px;
+    }
+    .cmd-input::placeholder { color: var(--muted); }
+    .cmd-send {
+      background: var(--accent); border: none; color: #fff; padding: 10px 18px;
+      border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit;
+      font-weight: 500; transition: opacity 0.15s;
+    }
+    .cmd-send:hover { opacity: 0.85; }
+
+    /* ── LOGS PANEL ── */
+    .logs-toggle {
+      display: flex; align-items: center; gap: 8px; padding: 8px 28px;
+      border-top: 1px solid var(--border); cursor: pointer; background: var(--surface);
+      font-size: 11px; color: var(--dim); user-select: none;
+    }
+    .logs-toggle:hover { color: var(--text); }
+    .logs-chevron { transition: transform 0.2s; }
+    .logs-chevron.open { transform: rotate(180deg); }
+    .logs-panel {
+      max-height: 0; overflow: hidden; background: var(--surface);
+      border-top: 1px solid var(--border); transition: max-height 0.25s ease;
+    }
+    .logs-panel.open { max-height: 180px; overflow-y: auto; }
+    .log-line {
+      display: flex; gap: 12px; padding: 4px 28px; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--dim);
+    }
+    .log-time { color: var(--muted); min-width: 55px; }
+    .log-agent { color: var(--accent); min-width: 80px; }
+    .log-msg { color: var(--dim); }
+    .log-line.ok .log-msg { color: var(--green); }
+    .log-line.warn .log-msg { color: var(--amber); }
+
+    /* ── RESPONSE CARD ── */
+    .response-card {
+      margin: 0 40px 24px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 24px; animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .response-meta { font-size: 10px; color: var(--muted); margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .response-text { font-size: 14px; color: var(--text); line-height: 1.8; white-space: pre-wrap; }
+    .thought-block {
+      font-size: 12px; color: var(--dim); font-style: italic; font-family: 'JetBrains Mono', monospace;
+      border-left: 2px solid var(--muted); padding-left: 12px; margin-bottom: 12px; opacity: 0.7;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; } 
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">🐘</span>
+      <div>
+        <div class="logo-text">The Studio</div>
+        <div class="logo-sub">Elephant 2.0</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Çalışma Alanı</div>
+      <div class="nav-item active" onclick="switchPanel('workspace')">
+        <span class="icon">✦</span> Atölye
+      </div>
+      <div class="nav-item" onclick="switchPanel('research')">
+        <span class="icon">◈</span> Araştırma
+      </div>
+      <div class="nav-item" onclick="switchPanel('strategy')">
+        <span class="icon">◇</span> Strateji
+      </div>
+      <div class="nav-item" onclick="switchPanel('memory')">
+        <span class="icon">○</span> Hafıza
+      </div>
+    </nav>
+
+    <!-- AGENT STATUS — whisper -->
+    <div class="agents-status">
+      <div class="nav-label">Beyinler</div>
+      <div class="agent-chip">
+        <span class="agent-name"><span class="dot cloud" id="dot-planner"></span>Planner</span>
+        <span style="font-size:9px;color:var(--muted)">claude</span>
+      </div>
+      <div class="agent-chip">
+        <span class="agent-name"><span class="dot cloud" id="dot-creator"></span>Creator</span>
+        <span style="font-size:9px;color:var(--muted)">claude</span>
+      </div>
+      <div class="agent-chip">
+        <span class="agent-name"><span class="dot cloud" id="dot-critic"></span>Critic</span>
+        <span style="font-size:9px;color:var(--muted)">gemini</span>
+      </div>
+      <div class="nav-label" style="margin-top:12px">Organlar</div>
+      <div class="agent-chip">
+        <span class="agent-name"><span class="dot local" id="dot-shadow"></span>Shadow</span>
+        <span style="font-size:9px;color:var(--muted)">local</span>
+      </div>
+      <div class="agent-chip">
+        <span class="agent-name"><span class="dot local" id="dot-executor"></span>Executor</span>
+        <span style="font-size:9px;color:var(--muted)">local</span>
+      </div>
+      <div class="agent-chip">
+        <span class="agent-name"><span class="dot up" id="dot-watchdog"></span>Watchdog</span>
+        <span style="font-size:9px;color:var(--muted)">sys</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="panel-title">Atölye — boş sayfa</span>
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="clearEditor()">Temizle</button>
+        <button class="topbar-btn" id="health-btn" onclick="checkHealth()">● Sistem</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <div class="editor-area" id="editor-area">
+        <input class="editor-title" id="editor-title" type="text" placeholder="Başlık..." />
+        <textarea class="editor-body" id="editor-body" placeholder="Düşüncelerinizi buraya yazın, ya da aşağıdan bir görev verin..."></textarea>
+        <div id="response-area"></div>
+      </div>
+
+      <!-- COMMAND BAR -->
+      <div>
+        <div class="command-bar">
+          <div class="cmd-input-wrap">
+            <span class="cmd-prompt">›</span>
+            <input class="cmd-input" id="cmd-input" placeholder="Görevi Elephant'a iletin..." onkeydown="onCmdKey(event)" />
+          </div>
+          <button class="cmd-send" onclick="sendCommand()">Gönder</button>
+        </div>
+
+        <!-- WHISPER LOGS -->
+        <div class="logs-toggle" onclick="toggleLogs()">
+          <span class="logs-chevron" id="logs-chevron">▲</span>
+          <span>Fısıltılar (sistem logları)</span>
+          <span id="log-count" style="margin-left:auto;color:var(--muted)">0 olay</span>
+        </div>
+        <div class="logs-panel" id="logs-panel"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const ORCHESTRATOR = 'http://localhost:8000';
+  let logsOpen = false;
+  let logCount = 0;
+
+  // ── NAV ──────────────────────────────────────────────────────────────────
+  function switchPanel(p) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    const titles = { workspace: 'Atölye — boş sayfa', research: 'Araştırma Merkezi', strategy: 'Strateji Odası', memory: 'Hafıza Arşivi' };
+    document.getElementById('panel-title').textContent = titles[p] || p;
+  }
+
+  // ── LOGS ─────────────────────────────────────────────────────────────────
+  function toggleLogs() {
+    logsOpen = !logsOpen;
+    document.getElementById('logs-panel').classList.toggle('open', logsOpen);
+    document.getElementById('logs-chevron').classList.toggle('open', logsOpen);
+  }
+
+  function addLog(agent, msg, type = '') {
+    logCount++;
+    const panel = document.getElementById('logs-panel');
+    const now = new Date();
+    const t = now.toLocaleTimeString('tr', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const div = document.createElement('div');
+    div.className = 'log-line ' + type;
+    div.innerHTML = `<span class="log-time">${t}</span><span class="log-agent">${agent}</span><span class="log-msg">${msg}</span>`;
+    panel.appendChild(div);
+    panel.scrollTop = panel.scrollHeight;
+    document.getElementById('log-count').textContent = logCount + ' olay';
+  }
+
+  // ── HEALTH ───────────────────────────────────────────────────────────────
+  async function checkHealth() {
+    const btn = document.getElementById('health-btn');
+    try {
+      const res = await fetch(ORCHESTRATOR + '/health');
+      if (res.ok) {
+        btn.textContent = '● Sistem Sağlıklı';
+        btn.style.color = 'var(--green)';
+        addLog('orchestrator', 'health check OK', 'ok');
+      } else {
+        throw new Error(res.status);
+      }
+    } catch (e) {
+      btn.textContent = '● Bağlantı Hatası';
+      btn.style.color = 'var(--amber)';
+      addLog('orchestrator', 'health check failed — ' + e.message, 'warn');
+    }
+  }
+
+  // ── COMMAND ──────────────────────────────────────────────────────────────
+  function onCmdKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCommand(); } }
+
+  function clearEditor() {
+    document.getElementById('editor-title').value = '';
+    document.getElementById('editor-body').value = '';
+    document.getElementById('response-area').innerHTML = '';
+  }
+
+  async function sendCommand() {
+    const input = document.getElementById('cmd-input');
+    const brief = input.value.trim();
+    if (!brief) return;
+
+    const title = document.getElementById('editor-title').value.trim() || brief.slice(0, 50);
+    input.value = '';
+    addLog('studio', `direktif gönderiliyor: "${brief.slice(0, 60)}..."`);
+
+    // Show thinking card
+    const area = document.getElementById('response-area');
+    const card = document.createElement('div');
+    card.className = 'response-card';
+    card.innerHTML = `<div class="response-meta">Elephant düşünüyor...</div><div class="response-text" id="live-text">...</div>`;
+    area.appendChild(card);
+    area.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+    try {
+      const res = await fetch(ORCHESTRATOR + '/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'work', brief, title, origin: 'studio' })
+      });
+      const data = await res.json();
+      const taskId = data.task_id || data.id;
+      const output = data.output;
+
+      addLog('planner', `görev kabul edildi — ${taskId}`, 'ok');
+
+      if (output) {
+        renderResponse(card, output, taskId);
+      } else {
+        // Poll for result
+        pollResult(card, taskId);
+      }
+    } catch (e) {
+      card.innerHTML = `<div class="response-meta">Hata</div><div class="response-text" style="color:var(--amber)">${e.message}</div>`;
+      addLog('orchestrator', 'request failed: ' + e.message, 'warn');
+    }
+  }
+
+  async function pollResult(card, taskId) {
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      if (attempts > 30) { clearInterval(poll); return; }
+      try {
+        const r = await fetch(`${ORCHESTRATOR}/tasks/${taskId}`);
+        const d = await r.json();
+        if (d.status === 'completed' || d.status === 'reporting') {
+          clearInterval(poll);
+          const output = (d.outputs || [])[0] || d.output || JSON.stringify(d);
+          renderResponse(card, output, taskId);
+          addLog('speaker', 'görev tamamlandı', 'ok');
+          speak(output);
+        } else if (d.status === 'failed') {
+          clearInterval(poll);
+          card.innerHTML = `<div class="response-meta">Başarısız</div><div class="response-text" style="color:var(--amber)">${d.error || 'Bilinmeyen hata'}</div>`;
+        }
+      } catch (_) {}
+    }, 2000);
+  }
+
+  function renderResponse(card, text, taskId) {
+    const thoughtMatch = text.match(/<thought>([\s\S]*?)<\/thought>/i);
+    let thoughtHtml = '';
+    let mainText = text.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
+
+    if (thoughtMatch) {
+      thoughtHtml = `<div class="thought-block">💭 ${thoughtMatch[1].trim()}</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="response-meta">Elephant — ${taskId ? taskId.slice(0, 8) : 'yanıt'}</div>
+      ${thoughtHtml}
+      <div class="response-text">${mainText}</div>
+    `;
+  }
+
+  // ── VOICE ─────────────────────────────────────────────────────────────────
+  function speak(text) {
+    if (!window.speechSynthesis) return;
+    const clean = text.replace(/<[^>]*>/g, '').replace(/\*\*/g, '').slice(0, 400);
+    const isTr = /[çğışöüÇĞİŞÖÜ]/.test(clean);
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.lang = isTr ? 'tr-TR' : 'en-US';
+    utt.rate = 0.92;
+    window.speechSynthesis.speak(utt);
+  }
+
+  // ── SSE (live events from orchestrator) ───────────────────────────────────
+  function connectSSE() {
+    const evtSource = new EventSource(ORCHESTRATOR + '/stream');
+    evtSource.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.event_type === 'speak_request' && msg.payload?.text) {
+          speak(msg.payload.text);
+          addLog('speaker', 'sesli yanıt tetiklendi', 'ok');
+        } else if (msg.event_type) {
+          addLog(msg.sender_agent || 'system', msg.event_type);
+        }
+      } catch (_) {}
+    };
+    evtSource.onerror = () => { setTimeout(connectSSE, 5000); };
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────────────────
+  window.addEventListener('load', () => {
+    checkHealth();
+    connectSSE();
+    addLog('studio', 'The Studio başlatıldı');
+  });
+</script>
+</body>
+</html>

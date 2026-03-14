@@ -44,7 +44,7 @@ def _validate_token(token: dict, task_id: str, secret: str) -> bool:
 class ExecutorAgent(BaseAgent):
     def __init__(self):
         super().__init__("executor")
-        self._secret = getattr(settings, "AUDITOR_TOKEN_SECRET", "elephant-auditor-secret-v1")
+        self._secret = settings.AUDITOR_TOKEN_SECRET
 
     def subscribed_events(self) -> list[EventType]:
         return [EventType.agent_task_request]

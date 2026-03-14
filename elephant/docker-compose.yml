@@ -362,6 +362,18 @@ services:
       - elephant-network
     restart: unless-stopped
 
+  # ── THE STUDIO — Creative Workspace UI ───────────────────────────────────
+  the_studio:
+    image: nginx:alpine
+    container_name: elephant-studio
+    volumes:
+      - ../studio:/usr/share/nginx/html:ro
+    ports:
+      - "3000:80"
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
 networks:
   elephant-network:
     driver: bridge
