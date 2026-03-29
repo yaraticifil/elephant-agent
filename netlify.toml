@@ -1,0 +1,8 @@
+[build]
+  publish = "public"
+  command = "echo 'Building Elephant API Dummy site...'"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
