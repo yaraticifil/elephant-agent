@@ -88,11 +88,14 @@ services:
       HEARTBEAT_INTERVAL_SECONDS: "30"
       DAILY_BUDGET_USD: "10.00"
       AUDITOR_TOKEN_SECRET: elephant-auditor-secret-v1
+      GOOGLE_APPLICATION_CREDENTIALS: /app/credentials.json
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS:-./credentials.json}:/app/credentials.json:ro
     networks:
       - elephant-network
     restart: unless-stopped

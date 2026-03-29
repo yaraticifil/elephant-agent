@@ -108,9 +108,10 @@ class PlannerAgent(BaseAgent):
 
     def __init__(self):
         super().__init__("planner")
+        self._workflow_state: dict[str, dict] = {}
 
     def subscribed_events(self) -> list[EventType]:
-        return [EventType.task_created, EventType.agent_task_request]
+        return [EventType.task_created, EventType.agent_task_request, EventType.task_completed]
 
     async def handle_message(self, msg: BusMessage) -> None:
         if msg.event_type == EventType.task_created:
@@ -119,6 +120,8 @@ class PlannerAgent(BaseAgent):
             # Direct task dispatch to planner (e.g. from interacter)
             if msg.recipient_agent == self.agent_name:
                 await self._handle_task_created(msg)
+        elif msg.event_type == EventType.task_completed:
+            await self._handle_step_completed(msg)
 
     # ──────────────────────────────────────────────────────────────────────────
     async def _handle_task_created(self, msg: BusMessage) -> None:
@@ -170,7 +173,18 @@ class PlannerAgent(BaseAgent):
             if subtask:
                 subtask_ids.append(subtask.get("task_id", ""))
 
-        # 4. Dispatch first subtask to its agent
+        # 4. Store workflow state
+        self._workflow_state[task_id] = {
+            "subtask_ids": subtask_ids,
+            "current_step": 0,
+            "workflow_key": workflow_key,
+            "template": template,
+            "title": title,
+            "memory_context": memory_context,
+            "mode": mode_raw,
+        }
+
+        # 5. Dispatch first subtask to its agent
         if template and subtask_ids:
             first_step = template[0]
             first_task_id = subtask_ids[0]
@@ -235,6 +249,64 @@ class PlannerAgent(BaseAgent):
         except Exception as exc:
             logger.error("planner_subtask_create_failed", extra={"error": str(exc), "title": title})
             return None
+
+    async def _handle_step_completed(self, msg: BusMessage) -> None:
+        payload = msg.payload or {}
+        parent_id = str(payload.get("parent_task_id", ""))
+
+        if parent_id not in self._workflow_state:
+            # We also check all_subtask_ids as a fallback
+            all_ids = payload.get("all_subtask_ids", [])
+            workflow_key = payload.get("workflow_key", "default")
+            if not parent_id or not all_ids:
+                return
+            # Restore state if planner restarted
+            self._workflow_state[parent_id] = {
+                "subtask_ids": all_ids,
+                "current_step": 0,
+                "workflow_key": workflow_key,
+                "template": WORKFLOW_TEMPLATES.get(workflow_key, WORKFLOW_TEMPLATES["default"]),
+                "title": payload.get("brief", {}).get("topic", "Task"),
+                "memory_context": payload.get("brief", {}).get("memory_context", ""),
+                "mode": payload.get("mode", "work"),
+            }
+
+        state = self._workflow_state[parent_id]
+        completed_task_id = str(msg.task_id or payload.get("task_id", ""))
+
+        # Find index of completed task
+        try:
+            current_idx = state["subtask_ids"].index(completed_task_id)
+            state["current_step"] = current_idx
+        except ValueError:
+            return
+
+        next_idx = current_idx + 1
+        if next_idx < len(state["subtask_ids"]):
+            next_task_id = state["subtask_ids"][next_idx]
+            next_step = state["template"][next_idx]
+
+            await self._dispatch_to_agent(
+                agent=next_step["agent"],
+                task_id=next_task_id,
+                title=f"{next_step['label']} — {state['title']}",
+                payload={
+                    "task_id": next_task_id,
+                    "parent_task_id": parent_id,
+                    "brief": {"topic": state["title"], "memory_context": state["memory_context"]},
+                    "workflow_key": state["workflow_key"],
+                    "all_subtask_ids": state["subtask_ids"],
+                }
+            )
+            logger.info("planner_dispatched_next_step", extra={
+                "agent": next_step["agent"],
+                "task_id": next_task_id,
+                "parent": parent_id,
+                "step": f"{next_idx+1}/{len(state['subtask_ids'])}",
+            })
+        else:
+            logger.info("planner_workflow_completed", extra={"parent_task_id": parent_id})
+            del self._workflow_state[parent_id]
 
     async def _dispatch_to_agent(
         self, agent: str, task_id: str, title: str, payload: dict[str, Any]

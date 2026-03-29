@@ -43,30 +43,106 @@ class MemoryAgent(BaseAgent):
 
     async def _handle_write(self, payload: dict) -> None:
         """
-        Stage 3: Route to correct backend (vector/relational/graph).
-        Stage 2: Stub — logs the write and returns.
+        Stores content in Qdrant vector storage.
         """
+        from qdrant_client import QdrantClient, models
+        import hashlib
+        from datetime import datetime, timezone
+
         memory_type = payload.get("memory_type", "project")
         content     = payload.get("content", "")
         entity_id   = payload.get("entity_id", "")
-        logger.info("memory_agent_write_stub", extra={
-            "memory_type": memory_type,
-            "entity_id": entity_id,
-            "content_len": len(content),
+
+        client = QdrantClient(url=settings.QDRANT_URL)
+        collection_name = "elephant_memory"
+
+        # Ensure collection exists
+        collections = client.get_collections().collections
+        if not any(c.name == collection_name for c in collections):
+            client.create_collection(
+                collection_name=collection_name,
+                vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE),
+            )
+
+        # Vector placeholder using hash
+        content_hash = hashlib.sha256(content.encode()).digest()
+        vector = [float(b) / 255.0 for b in content_hash]
+        # Pad or truncate to 384
+        if len(vector) < 384:
+            vector += [0.0] * (384 - len(vector))
+        else:
+            vector = vector[:384]
+
+        import uuid
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{entity_id}:{content[:50]}"))
+
+        client.upsert(
+            collection_name=collection_name,
+            points=[
+                models.PointStruct(
+                    id=point_id,
+                    vector=vector,
+                    payload={
+                        "content": content,
+                        "memory_type": memory_type,
+                        "entity_id": entity_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
+            ],
+        )
+        logger.info("memory_agent_wrote_to_qdrant", extra={
+            "memory_type": memory_type, "entity_id": entity_id
         })
-        # Stage 3: dispatch to Qdrant (vector) / PostgreSQL / Neo4j based on memory_type
 
     async def _handle_read(self, payload: dict) -> None:
         """
-        Stage 3: Query Qdrant + PostgreSQL + Neo4j fusion retrieval.
-        Stage 2: Stub — returns empty result.
+        Searches Qdrant for matching content and publishes result.
         """
+        from qdrant_client import QdrantClient, models
+        import hashlib
+
         query      = payload.get("query", "")
+        memory_type = payload.get("memory_type")
         requester  = payload.get("requester_agent", "unknown")
-        logger.info("memory_agent_read_stub", extra={
-            "query": query[:80], "requester": requester
+
+        client = QdrantClient(url=settings.QDRANT_URL)
+        collection_name = "elephant_memory"
+
+        # Vector placeholder for query
+        query_hash = hashlib.sha256(query.encode()).digest()
+        vector = [float(b) / 255.0 for b in query_hash]
+        if len(vector) < 384:
+            vector += [0.0] * (384 - len(vector))
+        else:
+            vector = vector[:384]
+
+        query_filter = None
+        if memory_type:
+            query_filter = models.Filter(
+                must=[models.FieldCondition(key="memory_type", match=models.MatchValue(value=memory_type))]
+            )
+
+        search_results = client.search(
+            collection_name=collection_name,
+            query_vector=vector,
+            query_filter=query_filter,
+            limit=5,
+        )
+
+        results = [hit.payload for hit in search_results]
+
+        # Publish result back on bus
+        msg = BusMessage(
+            event_type=EventType.memory_read_result,
+            sender_agent=self.agent_name,
+            recipient_agent=requester,
+            payload={"query": query, "results": results},
+        )
+        await self.bus.publish(msg)
+        logger.info("memory_agent_read_completed", extra={
+            "query": query[:50], "results_count": len(results)
         })
-        # Stage 3: run full retrieval pipeline and publish result back on bus
 
     async def _handle_task(self, task_id: str, payload: dict) -> None:
         """Handle explicit memory tasks like storing a reminder."""
