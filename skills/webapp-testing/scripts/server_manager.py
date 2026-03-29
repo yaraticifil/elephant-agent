@@ -350,7 +350,7 @@ class ServiceManager:
         parts = endpoint.split(" ", 1)
         method = "POST"
         url = endpoint
-        if len(parts) == 2 and parts[0].upper() in ["GET", "POST", "PUT", "PATCH"]:
+        if len(parts) == 2 and parts[0].upper() in {"GET", "POST", "PUT", "PATCH"}:
             method = parts[0].upper()
             url = parts[1]
         
