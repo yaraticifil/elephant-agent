@@ -19,18 +19,14 @@ class TestBaseAgentStop(unittest.IsolatedAsyncioTestCase):
         disconnects the message bus, and logs the event.
         """
         # Given we have a mock for MessageBus and logger
-        with patch("services.agents.base.agent.MessageBus") as mock_bus_cls, \
-             patch("services.agents.base.agent.logger") as mock_logger:
+        try:
+            from services.agents.base.agent import BaseAgent
 
-            mock_bus = mock_bus_cls.return_value
-            mock_bus.disconnect = AsyncMock()
+            with patch("services.agents.base.agent.MessageBus") as mock_bus_cls, \
+                 patch("services.agents.base.agent.logger") as mock_logger:
 
-            # Since BaseAgent depends on pydantic which may be missing in some
-            # development environments, we test the logic of stop() by
-            # dynamically importing it or using a concrete implementation
-            # if possible.
-            try:
-                from services.agents.base.agent import BaseAgent
+                mock_bus = mock_bus_cls.return_value
+                mock_bus.disconnect = AsyncMock()
 
                 # Concrete mock for testing the abstract BaseAgent
                 class MockAgent(BaseAgent):
@@ -56,11 +52,11 @@ class TestBaseAgentStop(unittest.IsolatedAsyncioTestCase):
                     "agent_stopped",
                     extra={"agent": "test-agent"}
                 )
-            except (ImportError, ModuleNotFoundError) as exc:
-                # In environments where dependencies are missing, we log and skip
-                # to satisfy the test runner while maintaining code cleanliness.
-                # In CI/CD, these dependencies should be installed.
-                self.skipTest(f"Skipping due to missing dependencies: {exc}")
+        except (ImportError, ModuleNotFoundError) as exc:
+            # In environments where dependencies are missing, we log and skip
+            # to satisfy the test runner while maintaining code cleanliness.
+            # In CI/CD, these dependencies should be installed.
+            self.skipTest(f"Skipping due to missing dependencies: {exc}")
 
 if __name__ == "__main__":
     unittest.main()
