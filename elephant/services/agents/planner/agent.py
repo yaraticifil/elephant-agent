@@ -14,10 +14,46 @@ from services.agents.base.agent import BaseAgent
 from shared.schemas.message import BusMessage, EventType
 from shared.schemas.task import TaskCreate, TaskBrief, TaskType, TaskMode, TaskOrigin, TaskRiskLevel
 from shared.config.base import get_settings
+from shared.config.persona import ELEPHANT_PERSONA
+from shared.config.llm import PLANNER_MODEL, call_vertex_model
 from shared.messaging.events import build_agent_task_request
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+# ── VERTEX AI GROUNDING (Google Search) ────────────────────────────────────
+def do_vertex_grounded_search(query: str) -> str:
+    logger.info(f"Using Vertex AI Grounding (Google Search) for query: {query}")
+    try:
+        from google.cloud import aiplatform
+        from vertexai.preview.generative_models import GenerativeModel, Tool
+        import vertexai
+
+        # Initialize Vertex AI with standard application default credentials
+        # (Must be provided by the environment, e.g., GOOGLE_APPLICATION_CREDENTIALS)
+        try:
+            vertexai.init()
+        except Exception as e:
+            logger.warning(f"Vertex AI not initialized properly, falling back. Error: {e}")
+            return f"[Simulated Vertex AI Grounded Result for '{query}' - Credentials missing]"
+
+        # Use Gemini 1.5 Pro with Google Search Grounding Tool (Gemini required for Search tools)
+        tool = Tool.from_google_search_retrieval(google_search_retrieval={})
+        model = GenerativeModel("gemini-1.5-pro-002", tools=[tool])
+
+        prompt = f"Perform a comprehensive Google search and analysis for the following query: {query}"
+        response = model.generate_content(prompt)
+
+        if response.text:
+            return response.text
+        return f"[Vertex AI Search returned empty result for '{query}']"
+
+    except ImportError:
+         logger.warning("google-cloud-aiplatform not installed.")
+         return f"[Fallback Search Result for '{query}']"
+    except Exception as e:
+        logger.warning(f"Vertex AI Grounding error: {e}")
+        return f"[Fallback Search Result for '{query}']"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # TASK TYPE ROUTING: defines which agent handles each task type
@@ -145,8 +181,23 @@ class PlannerAgent(BaseAgent):
             "task_id": task_id, "title": title, "task_type": task_type_raw
         })
 
+        # --- THINKING PHASE ---
+        logger.info("planner_thinking_started", extra={"task_id": task_id})
+        # In a real scenario, we'd call LLM here to get the <thought> block. 
+        # For now, we simulate the persona's strategic reasoning.
+        thought = f"<thought>Mösyö'nün direktifi alındı: '{title}'. Konseyin stratejik hedeflerine uygun olarak görev dağılımı planlanıyor. Fil her zaman hazırdır.</thought>"
+        logger.info(f"Elephant Thought: {thought}")
+        # ----------------------
+
         # 1. Query memory (stub: returns empty context in Stage 2)
         memory_context = await self._retrieve_memory(title)
+
+        # 1.5. If research-based, augment context via Vertex AI Grounding
+        if task_type in (TaskType.research, TaskType.strategy):
+            loop = asyncio.get_running_loop()
+            grounded_info = await loop.run_in_executor(None, do_vertex_grounded_search, title)
+            memory_context += "\n" + grounded_info
+            logger.info("planner_grounding_applied", extra={"query": title})
 
         # 2. Decompose into DAG
         workflow_key = _classify_goal(title, task_type)

@@ -56,7 +56,7 @@ class ResearcherAgent(BaseAgent):
         extracts text, and synthesizes a structured markdown report.
         """
         try:
-            return await asyncio.wait_for(self._execute_web_search(topic), timeout=10.0)
+            return await asyncio.wait_for(self._execute_web_search(topic), timeout=45.0)
         except Exception as exc:
             logger.error("research_failed_or_timed_out", extra={"topic": topic, "error": str(exc)})
             return f"## Summary\nResearch for {topic} failed or timed out.\n\n## Sources\nN/A\n\n## Key Findings\nFalling back to stub message."

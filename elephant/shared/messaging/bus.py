@@ -17,8 +17,9 @@ class MessageBus:
         self._client: aioredis.Redis | None = None
 
     async def connect(self) -> None:
+        logger.info(f"Connecting to Redis at {self.redis_url}")
         self._client = await aioredis.from_url(
-            self.redis_url, decode_responses=True, socket_connect_timeout=5
+            self.redis_url, decode_responses=True, socket_connect_timeout=10
         )
         try:
             await self._client.xgroup_create(

@@ -72,7 +72,8 @@ class TaskCreate(BaseModel):
     origin: TaskOrigin = TaskOrigin.user
     brief: TaskBrief = Field(default_factory=TaskBrief)
     priority: TaskPriority = TaskPriority.standard
-    parent_task_id: UUID | None = None
+    assigned_agent: str | None = None
+    parent_task_id: UUID | str | None = None
     depends_on: list[UUID] = Field(default_factory=list)
     deadline: datetime | None = None
     success_criteria: str = ""

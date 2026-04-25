@@ -77,26 +77,25 @@ services:
       - "8000:8000"
     environment: &common-env
       POSTGRES_URL: postgresql+asyncpg://elephant:elephant123@postgres:5432/elephant
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379/0
       QDRANT_URL: http://qdrant:6333
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: elephant123
+      NEO4J_PASSWORD:  
       ORCHESTRATOR_URL: http://orchestrator:8000
       ELEPHANT_ENV: development
       LOG_LEVEL: INFO
       HEARTBEAT_INTERVAL_SECONDS: "30"
       DAILY_BUDGET_USD: "10.00"
       AUDITOR_TOKEN_SECRET: elephant-auditor-secret-v1
-      GOOGLE_APPLICATION_CREDENTIALS: /app/credentials.json
+
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
-      - ${GOOGLE_APPLICATION_CREDENTIALS:-./credentials.json}:/app/credentials.json:ro
-    networks:
+<< 
       - elephant-network
     restart: unless-stopped
     healthcheck:
@@ -120,6 +119,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -136,6 +137,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -152,6 +155,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -168,6 +173,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -184,6 +191,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -200,6 +209,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -216,6 +227,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -232,6 +245,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -249,6 +264,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -265,6 +282,8 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
     networks:
       - elephant-network
     restart: unless-stopped
@@ -281,6 +300,110 @@ services:
     depends_on:
       orchestrator:
         condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_gatekeeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-gatekeeper
+    command: python -m services.agents.gatekeeper.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: gatekeeper
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_shadow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-shadow
+    command: python -m services.agents.shadow.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: shadow
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_mask:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-mask
+    command: python -m services.agents.mask.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: mask
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_listener:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-listener
+    command: python -m services.agents.listener.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: listener
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  agent_speaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elephant-agent-speaker
+    command: python -m services.agents.speaker.agent
+    environment:
+      <<: *common-env
+      AGENT_NAME: speaker
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    volumes:
+      - ./secrets:/app/secrets:ro
+    networks:
+      - elephant-network
+    restart: unless-stopped
+
+  # ── THE STUDIO — Creative Workspace UI ───────────────────────────────────
+  the_studio:
+    image: nginx:alpine
+    container_name: elephant-studio
+    volumes:
+      - ../studio:/usr/share/nginx/html:ro
+    ports:
+      - "3000:80"
     networks:
       - elephant-network
     restart: unless-stopped

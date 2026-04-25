@@ -49,7 +49,7 @@ def _detect_pii(content: str) -> list[str]:
 class AuditorAgent(BaseAgent):
     def __init__(self):
         super().__init__("auditor")
-        self._secret = getattr(settings, "AUDITOR_TOKEN_SECRET", "elephant-auditor-secret-v1")
+        self._secret = settings.AUDITOR_TOKEN_SECRET
 
     def subscribed_events(self) -> list[EventType]:
         return [EventType.agent_task_request]

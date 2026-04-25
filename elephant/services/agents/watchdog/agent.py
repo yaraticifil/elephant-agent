@@ -57,14 +57,14 @@ class WatchdogAgent(BaseAgent):
                 except Exception as exc:
                     logger.error(f"watchdog_alert_publish_error: {exc}")
 
-    async def _handle_message(self, msg: BusMessage) -> None:
+    async def handle_message(self, msg: BusMessage) -> None:
         """Track heartbeats from all agents."""
         if msg.event_type == EventType.agent_heartbeat:
             agent_name = msg.sender_agent
             self._last_heartbeat[agent_name] = datetime.now(timezone.utc)
             logger.debug(f"watchdog_heartbeat_received | agent={agent_name}")
 
-    def _get_subscribed_events(self) -> list[EventType]:
+    def subscribed_events(self) -> list[EventType]:
         return [EventType.agent_heartbeat]
 
 

@@ -44,7 +44,7 @@ def _validate_token(token: dict, task_id: str, secret: str) -> bool:
 class ExecutorAgent(BaseAgent):
     def __init__(self):
         super().__init__("executor")
-        self._secret = getattr(settings, "AUDITOR_TOKEN_SECRET", "elephant-auditor-secret-v1")
+        self._secret = settings.AUDITOR_TOKEN_SECRET
 
     def subscribed_events(self) -> list[EventType]:
         return [EventType.agent_task_request]
@@ -94,7 +94,7 @@ class ExecutorAgent(BaseAgent):
         Credentials read from Vault at execution time ONLY.
         """
         await asyncio.sleep(0.3)
-        return f"[Stage 2 Stub] Execution blocked. Task {task_id} awaiting user approval."
+        return f"İnfaz durduruldu Mösyö. {task_id} numaralı görev için mühür bekleniyor. Tedbir her şeydir."
 
     async def _set_awaiting_approval(self, task_id: str) -> None:
         async with httpx.AsyncClient(timeout=15) as client:
